@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Lock, User } from "lucide-react";
+import { authenticateCompany } from "@/hooks/useAdmin";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -15,19 +16,32 @@ const AdminLogin = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Mock login - será substituído por autenticação real
-    setTimeout(() => {
-      if (email && password) {
-        localStorage.setItem("admin_logged_in", "true");
-        toast.success("Login realizado com sucesso!");
-        navigate("/admin");
-      } else {
-        toast.error("Preencha todos os campos");
-      }
+    const { company, error } = await authenticateCompany(email, password);
+
+    if (error || !company) {
+      toast.error(error || "Credenciais inválidas");
       setIsLoading(false);
-    }, 800);
+      return;
+    }
+
+    // Store company info in localStorage
+    localStorage.setItem("admin_logged_in", "true");
+    localStorage.setItem("admin_company_id", String(company.id));
+    localStorage.setItem("admin_company_name", company.name || "");
+    localStorage.setItem("admin_company_logo", company.elogo || "");
+    localStorage.setItem("admin_company_stamps", company.loyaltystamps || "10");
+
+    toast.success("Login realizado com sucesso!");
+    navigate("/admin");
+    setIsLoading(false);
   };
 
   return (
@@ -56,13 +70,13 @@ const AdminLogin = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground/80">
-                Email
+                Email ou Usuário
               </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -98,7 +112,7 @@ const AdminLogin = () => {
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
-            Sistema de fidelidade • Meu Restaurante
+            Sistema de fidelidade
           </p>
         </CardContent>
       </Card>
