@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { UtensilsCrossed, Loader2, ArrowLeft, Plus, CheckCircle, Clock } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Plus, CheckCircle, Clock, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getClientByPhone, 
@@ -23,6 +23,7 @@ interface CardItem {
   completed: boolean;
   completedat: string | null;
   created_at: string;
+  rescued: boolean;
 }
 
 interface CompanyData {
@@ -93,6 +94,7 @@ const ClientCards = () => {
           completed: c.completed || false,
           completedat: c.completedat,
           created_at: c.created_at,
+          rescued: c.rescued || false,
         })));
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -123,7 +125,8 @@ const ClientCards = () => {
   };
 
   const activeCard = cards.find(c => !c.completed);
-  const completedCards = cards.filter(c => c.completed);
+  const completedCards = cards.filter(c => c.completed && !c.rescued);
+  const rescuedCards = cards.filter(c => c.rescued);
   const canCreateNew = !activeCard || activeCard.completed;
 
   if (isLoading) {
@@ -224,9 +227,9 @@ const ClientCards = () => {
         </Button>
       )}
 
-      {/* Completed Cards */}
+      {/* Completed Cards (not rescued yet) */}
       {completedCards.length > 0 && (
-        <div className="w-full max-w-md relative z-10">
+        <div className="w-full max-w-md relative z-10 mb-4">
           <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-500" />
             Cartões Completos ({completedCards.length})
@@ -253,6 +256,44 @@ const ClientCards = () => {
                       <CheckCircle className="w-6 h-6 text-green-500" />
                       <span className="text-sm font-medium text-green-600">
                         {card.reqstamp}/{card.reqstamp}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Rescued Cards */}
+      {rescuedCards.length > 0 && (
+        <div className="w-full max-w-md relative z-10">
+          <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Gift className="w-5 h-5 text-gray-500" />
+            Cartões Resgatados ({rescuedCards.length})
+          </h2>
+          <div className="space-y-3">
+            {rescuedCards.map((card) => (
+              <Card 
+                key={card.id}
+                className="border-gray-400/30 bg-gray-500/10 cursor-pointer hover:bg-gray-500/15 transition-colors"
+                onClick={() => navigate(`/card/${card.cardcode}`)}
+              >
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-mono text-base font-bold text-gray-500">{card.cardcode}</p>
+                      <p className="text-xs text-gray-500">
+                        Completado em {card.completedat 
+                          ? format(new Date(card.completedat), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                          : format(new Date(card.created_at), "dd/MM/yyyy", { locale: ptBR })
+                        }
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-full font-medium">
+                        RESGATADO
                       </span>
                     </div>
                   </div>
