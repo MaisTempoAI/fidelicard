@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 
 interface CardData {
@@ -10,6 +10,7 @@ interface CardData {
   custamp: number;
   reqstamp: number;
   completed: boolean;
+  rescued: boolean;
 }
 
 interface ClientData {
@@ -56,6 +57,7 @@ const CardPage = () => {
           custamp: Number(card.custamp) || 0,
           reqstamp: Number(card.reqstamp) || 10,
           completed: card.completed || false,
+          rescued: card.rescued || false,
         });
 
         // Busca o cliente pelo cardid
@@ -151,14 +153,34 @@ const CardPage = () => {
         </Button>
       </div>
 
-      <Card className="w-full max-w-sm relative z-10 border-primary/20 shadow-xl overflow-hidden">
+      <Card className={`w-full max-w-sm relative z-10 shadow-xl overflow-hidden ${
+        cardData.rescued 
+          ? "border-gray-400/30" 
+          : "border-primary/20"
+      }`}>
+        {/* Rescued Banner */}
+        {cardData.rescued && (
+          <div className="bg-gray-500 text-white text-center py-2 px-4">
+            <div className="flex items-center justify-center gap-2">
+              <Gift className="w-4 h-4" />
+              <span className="font-bold text-sm">CARTÃO RESGATADO</span>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
-        <CardHeader className="gradient-warm text-primary-foreground text-center pb-4">
+        <CardHeader className={`text-center pb-4 ${
+          cardData.rescued 
+            ? "bg-gray-400 text-white" 
+            : "gradient-warm text-primary-foreground"
+        }`}>
           <div className="flex items-center justify-center gap-2">
             <UtensilsCrossed className="w-6 h-6" />
             <h1 className="text-xl font-bold">{companyName}</h1>
           </div>
-          <p className="text-primary-foreground/80 text-sm">Fidelidade</p>
+          <p className={`text-sm ${cardData.rescued ? "text-white/80" : "text-primary-foreground/80"}`}>
+            {cardData.rescued ? "Cartão Utilizado" : "Fidelidade"}
+          </p>
         </CardHeader>
 
         <CardContent className="pt-6 pb-6">
@@ -210,13 +232,15 @@ const CardPage = () => {
 
           {/* Progress text */}
           <p className="text-center text-muted-foreground text-sm mb-2">
-            {cardData.completed
+            {cardData.rescued
+              ? "✅ Este cartão já foi resgatado"
+              : cardData.completed
               ? "🎉 Parabéns! Você completou seu cartão!"
               : `Faltam ${remainingStamps} Carimbos para completar seu cartão!`}
           </p>
 
-          {/* Exchange Products */}
-          {exchangeProducts && (
+          {/* Exchange Products - hide if rescued */}
+          {exchangeProducts && !cardData.rescued && (
             <p className="text-center text-foreground font-medium text-sm">
               Troque por: <span className="text-primary">{exchangeProducts}</span>
             </p>
