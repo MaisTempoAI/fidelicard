@@ -123,6 +123,7 @@ export type Database = {
           created_at: string
           elogo: string | null
           email: string | null
+          exchangeproducts: string | null
           extcode: string | null
           id: number
           loyaltystamps: string | null
@@ -141,6 +142,7 @@ export type Database = {
           created_at?: string
           elogo?: string | null
           email?: string | null
+          exchangeproducts?: string | null
           extcode?: string | null
           id?: number
           loyaltystamps?: string | null
@@ -159,6 +161,7 @@ export type Database = {
           created_at?: string
           elogo?: string | null
           email?: string | null
+          exchangeproducts?: string | null
           extcode?: string | null
           id?: number
           loyaltystamps?: string | null
