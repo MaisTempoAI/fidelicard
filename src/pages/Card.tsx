@@ -1,8 +1,8 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Plus, Loader2 } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 
 interface CardData {
@@ -22,10 +22,12 @@ interface CompanyData {
   name: string | null;
   loyaltytext: string | null;
   loyaltystamps: string | null;
+  exchangeproducts: string | null;
 }
 
 const CardPage = () => {
   const { code } = useParams();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [cardData, setCardData] = useState<CardData | null>(null);
   const [clientData, setClientData] = useState<ClientData | null>(null);
@@ -74,6 +76,7 @@ const CardPage = () => {
                   name: company.name,
                   loyaltytext: company.loyaltytext,
                   loyaltystamps: company.loyaltystamps,
+                  exchangeproducts: company.exchangeproducts,
                 });
               }
             }
@@ -89,10 +92,6 @@ const CardPage = () => {
 
     fetchData();
   }, [code]);
-
-  const handleAddToHome = () => {
-    alert("Para adicionar ao início:\n\niPhone: Toque em Compartilhar → Adicionar à Tela de Início\n\nAndroid: Menu ⋮ → Adicionar à tela inicial");
-  };
 
   if (isLoading) {
     return (
@@ -110,7 +109,7 @@ const CardPage = () => {
           <CardContent className="pt-6 text-center">
             <p className="text-destructive font-medium">{error || "Cartão não encontrado"}</p>
             <Button
-              onClick={() => window.location.href = "/"}
+              onClick={() => navigate("/")}
               className="mt-4"
               variant="outline"
             >
@@ -126,6 +125,8 @@ const CardPage = () => {
   const requiredStamps = cardData.reqstamp;
   const companyName = companyData?.name || "Meu Restaurante";
   const loyaltyText = companyData?.loyaltytext || `Junte ${requiredStamps} carimbos e ganhe um almoço gratuito!`;
+  const exchangeProducts = companyData?.exchangeproducts;
+  const remainingStamps = requiredStamps - currentStamps;
 
   const stamps = Array.from({ length: requiredStamps }, (_, i) => i < currentStamps);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
@@ -135,6 +136,19 @@ const CardPage = () => {
       {/* Decorative background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl" />
+      </div>
+
+      {/* Back Button */}
+      <div className="w-full max-w-sm relative z-10 mb-4">
+        <Button
+          onClick={() => navigate("/")}
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
       </div>
 
       <Card className="w-full max-w-sm relative z-10 border-primary/20 shadow-xl overflow-hidden">
@@ -195,21 +209,18 @@ const CardPage = () => {
           </div>
 
           {/* Progress text */}
-          <p className="text-center text-muted-foreground text-sm mb-4">
+          <p className="text-center text-muted-foreground text-sm mb-2">
             {cardData.completed
-              ? "🎉 Parabéns! Você ganhou um almoço grátis!"
-              : `Faltam ${requiredStamps - currentStamps} carimbos para o almoço grátis`}
+              ? "🎉 Parabéns! Você completou seu cartão!"
+              : `Faltam ${remainingStamps} Carimbos para completar seu cartão!`}
           </p>
 
-          {/* Add to Home Button */}
-          <Button
-            onClick={handleAddToHome}
-            variant="outline"
-            className="w-full border-primary/30 text-primary hover:bg-primary/10"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar ao Início
-          </Button>
+          {/* Exchange Products */}
+          {exchangeProducts && (
+            <p className="text-center text-foreground font-medium text-sm">
+              Troque por: <span className="text-primary">{exchangeProducts}</span>
+            </p>
+          )}
         </CardContent>
       </Card>
 

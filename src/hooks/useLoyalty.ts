@@ -106,7 +106,11 @@ export const createCard = async (clientCardId: string, companyId: number, requir
 
 // Busca ou cria cliente e cartão
 export const findOrCreateClientAndCard = async (phone: string, companyId: number) => {
-  // Primeiro, verifica se já existe um cliente com esse telefone para essa empresa
+  // Primeiro, busca a empresa para obter loyaltystamps
+  const company = await getCompany(companyId);
+  const requiredStamps = company?.loyaltystamps ? Number(company.loyaltystamps) : 10;
+
+  // Verifica se já existe um cliente com esse telefone para essa empresa
   let client = await getClientByPhone(phone, companyId);
 
   // Se não existe, cria um novo cliente
@@ -123,10 +127,10 @@ export const findOrCreateClientAndCard = async (phone: string, companyId: number
 
   if (cardError) throw cardError;
 
-  // Se não existe cartão, cria um novo
+  // Se não existe cartão, cria um novo com a quantidade de stamps da empresa
   let card = existingCard;
   if (!card) {
-    card = await createCard(client.cardid!, companyId);
+    card = await createCard(client.cardid!, companyId, requiredStamps);
   }
 
   return { client, card };
