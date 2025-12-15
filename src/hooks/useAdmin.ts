@@ -7,6 +7,11 @@ export interface Company {
   user: string | null;
   elogo: string | null;
   loyaltystamps: string | null;
+  phone: string | null;
+  address: string | null;
+  loyaltytext: string | null;
+  exchangeproducts: string | null;
+  primarycolour: string | null;
 }
 
 export interface ClientWithCard {
@@ -24,7 +29,7 @@ export interface ClientWithCard {
 export const authenticateCompany = async (login: string, password: string) => {
   const { data, error } = await supabase
     .from("CRF-Companies")
-    .select("id, name, email, user, elogo, loyaltystamps")
+    .select("id, name, email, user, elogo, loyaltystamps, phone, address, loyaltytext, exchangeproducts, primarycolour")
     .or(`email.eq.${login},user.eq.${login}`)
     .eq("password", password)
     .single();
@@ -34,6 +39,66 @@ export const authenticateCompany = async (login: string, password: string) => {
   }
 
   return { company: data as Company, error: null };
+};
+
+// Get company by ID
+export const getCompanyById = async (companyId: number) => {
+  const { data, error } = await supabase
+    .from("CRF-Companies")
+    .select("id, name, email, user, elogo, loyaltystamps, phone, address, loyaltytext, exchangeproducts, primarycolour")
+    .eq("id", companyId)
+    .single();
+
+  if (error || !data) {
+    return { company: null, error: error?.message || "Empresa não encontrada" };
+  }
+
+  return { company: data as Company, error: null };
+};
+
+// Update company data
+export const updateCompanyData = async (
+  companyId: number,
+  data: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+  }
+) => {
+  const { error } = await supabase
+    .from("CRF-Companies")
+    .update(data)
+    .eq("id", companyId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, error: null };
+};
+
+// Update company card settings
+export const updateCompanyCardSettings = async (
+  companyId: number,
+  data: {
+    loyaltystamps?: string;
+    loyaltytext?: string;
+    exchangeproducts?: string;
+    primarycolour?: string;
+    elogo?: string;
+  }
+) => {
+  const { error } = await supabase
+    .from("CRF-Companies")
+    .update(data)
+    .eq("id", companyId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, error: null };
 };
 
 // Get all clients with their cards for a company
