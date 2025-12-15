@@ -23,6 +23,7 @@ export interface ClientWithCard {
   custamp: number | null;
   reqstamp: number | null;
   completed: boolean | null;
+  rescued: boolean | null;
 }
 
 // Authenticate company by email/user and password
@@ -118,7 +119,7 @@ export const getCompanyClientsWithCards = async (companyId: number) => {
   
   const { data: cards, error: cardsError } = await supabase
     .from("CRF-Cards")
-    .select("id, idclient, cardcode, custamp, reqstamp, completed")
+    .select("id, idclient, cardcode, custamp, reqstamp, completed, rescued")
     .in("idclient", clientCardIds);
 
   if (cardsError) {
@@ -137,6 +138,7 @@ export const getCompanyClientsWithCards = async (companyId: number) => {
       custamp: card?.custamp || 0,
       reqstamp: card?.reqstamp || 10,
       completed: card?.completed || false,
+      rescued: card?.rescued || false,
     };
   });
 
@@ -225,4 +227,18 @@ export const searchClients = (clients: ClientWithCard[], searchTerm: string) => 
     c.cardcode?.toLowerCase().includes(term) ||
     c.nome?.toLowerCase().includes(term)
   );
+};
+
+// Rescue a completed card
+export const rescueCard = async (cardId: number) => {
+  const { error } = await supabase
+    .from("CRF-Cards")
+    .update({ rescued: true })
+    .eq("id", cardId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, error: null };
 };

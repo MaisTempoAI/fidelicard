@@ -56,6 +56,7 @@ export type Database = {
           idemp: string | null
           qrcode: string | null
           reqstamp: number | null
+          rescued: boolean | null
         }
         Insert: {
           cardcode?: string | null
@@ -68,6 +69,7 @@ export type Database = {
           idemp?: string | null
           qrcode?: string | null
           reqstamp?: number | null
+          rescued?: boolean | null
         }
         Update: {
           cardcode?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           idemp?: string | null
           qrcode?: string | null
           reqstamp?: number | null
+          rescued?: boolean | null
         }
         Relationships: []
       }
