@@ -164,10 +164,10 @@ const CardPage = () => {
         <CardContent className="pt-6 pb-6">
           {/* Title */}
           <div className="text-center mb-6">
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-base font-semibold text-foreground leading-relaxed text-balance max-w-[280px] mx-auto">
               {loyaltyText}
             </h2>
-            <p className="text-3xl font-bold text-primary mt-2">
+            <p className="text-3xl font-bold text-primary mt-3">
               Carimbos: {currentStamps}
             </p>
           </div>
