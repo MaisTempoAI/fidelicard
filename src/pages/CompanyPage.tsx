@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { UtensilsCrossed, Loader2, ArrowLeft, Settings } from "lucide-react";
 import { toast } from "sonner";
-import { findOrCreateClientAndCard, getCompany } from "@/hooks/useLoyalty";
+import { getCompany } from "@/hooks/useLoyalty";
 
 interface CompanyData {
   id: number;
@@ -75,13 +75,8 @@ const CompanyPage = () => {
     setIsLoading(true);
 
     try {
-      const { card } = await findOrCreateClientAndCard(phone, company.id);
-      
-      if (card?.cardcode) {
-        navigate(`/card/${card.cardcode}`);
-      } else {
-        toast.error("Erro ao criar cartão. Tente novamente.");
-      }
+      const cleanedPhone = phone.replace(/\D/g, "");
+      navigate(`/empresa/${company.id}/cartoes?phone=${cleanedPhone}`);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Erro ao acessar o cartão. Tente novamente.");

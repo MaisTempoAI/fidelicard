@@ -104,8 +104,20 @@ export const createCard = async (clientCardId: string, companyId: number, requir
   return data;
 };
 
-// Busca ou cria cliente e cartão
-export const findOrCreateClientAndCard = async (phone: string, companyId: number) => {
+// Busca TODOS os cartões de um cliente
+export const getAllCardsByClient = async (clientCardId: string) => {
+  const { data, error } = await supabase
+    .from("CRF-Cards")
+    .select("*")
+    .eq("idclient", clientCardId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+};
+
+// Busca ou cria cliente e retorna todos os cartões
+export const findOrCreateClientWithAllCards = async (phone: string, companyId: number) => {
   // Primeiro, busca a empresa para obter loyaltystamps
   const company = await getCompany(companyId);
   const requiredStamps = company?.loyaltystamps ? Number(company.loyaltystamps) : 10;
@@ -118,20 +130,29 @@ export const findOrCreateClientAndCard = async (phone: string, companyId: number
     client = await createClient(phone, companyId);
   }
 
-  // Agora busca o cartão pelo cardid do cliente
-  const { data: existingCard, error: cardError } = await supabase
-    .from("CRF-Cards")
-    .select("*")
-    .eq("idclient", client.cardid)
-    .maybeSingle();
+  // Busca TODOS os cartões do cliente
+  const allCards = await getAllCardsByClient(client.cardid!);
 
-  if (cardError) throw cardError;
-
-  // Se não existe cartão, cria um novo com a quantidade de stamps da empresa
-  let card = existingCard;
-  if (!card) {
-    card = await createCard(client.cardid!, companyId, requiredStamps);
+  // Se não existe nenhum cartão, cria um novo
+  if (allCards.length === 0) {
+    const newCard = await createCard(client.cardid!, companyId, requiredStamps);
+    return { client, cards: [newCard], company };
   }
 
-  return { client, card };
+  return { client, cards: allCards, company };
+};
+
+// Cria um novo cartão para o cliente (para quando completa o anterior)
+export const createNewCardForClient = async (clientCardId: string, companyId: number) => {
+  const company = await getCompany(companyId);
+  const requiredStamps = company?.loyaltystamps ? Number(company.loyaltystamps) : 10;
+  return await createCard(clientCardId, companyId, requiredStamps);
+};
+
+// Busca ou cria cliente e cartão (mantido para compatibilidade)
+export const findOrCreateClientAndCard = async (phone: string, companyId: number) => {
+  const { client, cards, company } = await findOrCreateClientWithAllCards(phone, companyId);
+  // Retorna o cartão ativo (não completado) ou o mais recente
+  const activeCard = cards.find(c => !c.completed) || cards[0];
+  return { client, card: activeCard };
 };
