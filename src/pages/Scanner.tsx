@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UtensilsCrossed, ArrowLeft, Camera, Search, Loader2, CheckCircle, XCircle, Check } from "lucide-react";
+import { UtensilsCrossed, ArrowLeft, Camera, Search, Loader2, CheckCircle, XCircle, Check, Gift } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
-import { addStampToCard } from "@/hooks/useAdmin";
+import { addStampToCard, rescueCard } from "@/hooks/useAdmin";
 
 interface ScannedCard {
   cardId: number;
@@ -15,6 +15,7 @@ interface ScannedCard {
   custamp: number;
   reqstamp: number;
   completed: boolean;
+  rescued: boolean;
   clientName: string | null;
   clientPhone: string | null;
   companyName: string | null;
@@ -140,6 +141,7 @@ const Scanner = () => {
         custamp: Number(card.custamp) || 0,
         reqstamp: Number(card.reqstamp) || 10,
         completed: card.completed || false,
+        rescued: card.rescued || false,
         clientName,
         clientPhone,
         companyName,
@@ -161,6 +163,8 @@ const Scanner = () => {
 
   const [isAddingStamp, setIsAddingStamp] = useState(false);
   const [stampAdded, setStampAdded] = useState(false);
+  const [isRescuing, setIsRescuing] = useState(false);
+  const [rescued, setRescued] = useState(false);
 
   const handleAddStamp = async () => {
     if (!scannedCard || scannedCard.completed) return;
@@ -190,11 +194,39 @@ const Scanner = () => {
     }
   };
 
+  const handleRescue = async () => {
+    if (!scannedCard || !scannedCard.completed || scannedCard.rescued) return;
+    
+    setIsRescuing(true);
+    try {
+      const { success, error } = await rescueCard(scannedCard.cardId);
+      
+      if (success) {
+        setScannedCard({
+          ...scannedCard,
+          rescued: true,
+        });
+        setRescued(true);
+        toast.success("Cartão resgatado!", {
+          description: `${scannedCard.clientName || "Cliente"} resgatou seu prêmio!`
+        });
+      } else {
+        toast.error(error || "Erro ao resgatar cartão");
+      }
+    } catch (err) {
+      console.error("Error rescuing card:", err);
+      toast.error("Erro ao resgatar cartão");
+    } finally {
+      setIsRescuing(false);
+    }
+  };
+
   const handleReset = () => {
     setScannedCard(null);
     setScanError(null);
     setManualCode("");
     setStampAdded(false);
+    setRescued(false);
   };
 
   return (
@@ -257,13 +289,32 @@ const Scanner = () => {
                     <span className="font-bold text-primary text-lg">{scannedCard.custamp}</span>
                     <span className="text-muted-foreground">/{scannedCard.reqstamp}</span>
                   </p>
-                  {scannedCard.completed && (
+                  {scannedCard.rescued ? (
+                    <p className="text-purple-600 font-medium">🎁 Já Resgatado!</p>
+                  ) : scannedCard.completed && (
                     <p className="text-green-600 font-medium">✓ Cartão Completo!</p>
                   )}
                 </div>
               </div>
 
-              {stampAdded ? (
+              {rescued ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg text-center">
+                    <Gift className="w-6 h-6 text-purple-600 mx-auto mb-1" />
+                    <p className="font-semibold text-purple-700">Prêmio Resgatado!</p>
+                    <p className="text-sm text-purple-600">
+                      {scannedCard.clientName || "Cliente"} resgatou seu prêmio
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleReset}
+                  >
+                    Escanear Outro Cartão
+                  </Button>
+                </div>
+              ) : stampAdded ? (
                 <div className="space-y-3">
                   <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-lg text-center">
                     <Check className="w-6 h-6 text-green-600 mx-auto mb-1" />
@@ -280,6 +331,14 @@ const Scanner = () => {
                     Escanear Outro Cartão
                   </Button>
                 </div>
+              ) : scannedCard.rescued ? (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleReset}
+                >
+                  Escanear Outro Cartão
+                </Button>
               ) : (
                 <div className="flex gap-2">
                   <Button
@@ -289,16 +348,31 @@ const Scanner = () => {
                   >
                     Novo Scan
                   </Button>
-                  <Button
-                    className="flex-1 gradient-warm"
-                    onClick={handleAddStamp}
-                    disabled={scannedCard.completed || isAddingStamp}
-                  >
-                    {isAddingStamp ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : null}
-                    Adicionar Carimbo
-                  </Button>
+                  {scannedCard.completed ? (
+                    <Button
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                      onClick={handleRescue}
+                      disabled={isRescuing}
+                    >
+                      {isRescuing ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Gift className="w-4 h-4 mr-2" />
+                      )}
+                      RESGATAR
+                    </Button>
+                  ) : (
+                    <Button
+                      className="flex-1 gradient-warm"
+                      onClick={handleAddStamp}
+                      disabled={isAddingStamp}
+                    >
+                      {isAddingStamp ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : null}
+                      Adicionar Carimbo
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
