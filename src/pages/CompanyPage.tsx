@@ -1,19 +1,60 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { UtensilsCrossed, Loader2 } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { findOrCreateClientAndCard } from "@/hooks/useLoyalty";
+import { findOrCreateClientAndCard, getCompany } from "@/hooks/useLoyalty";
 
-// ID da empresa padrão (você pode mudar isso depois ou buscar dinamicamente)
-const DEFAULT_COMPANY_ID = 1;
+interface CompanyData {
+  id: number;
+  name: string | null;
+  loyaltytext: string | null;
+  loyaltystamps: string | null;
+  elogo: string | null;
+}
 
-const Index = () => {
+const CompanyPage = () => {
+  const { companyId } = useParams();
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true);
+  const [company, setCompany] = useState<CompanyData | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      if (!companyId) {
+        navigate("/");
+        return;
+      }
+
+      try {
+        const data = await getCompany(Number(companyId));
+        if (!data) {
+          toast.error("Empresa não encontrada");
+          navigate("/");
+          return;
+        }
+        setCompany({
+          id: data.id,
+          name: data.name,
+          loyaltytext: data.loyaltytext,
+          loyaltystamps: data.loyaltystamps,
+          elogo: data.elogo,
+        });
+      } catch (error) {
+        console.error("Error fetching company:", error);
+        toast.error("Erro ao carregar empresa");
+        navigate("/");
+      } finally {
+        setIsLoadingCompany(false);
+      }
+    };
+
+    fetchCompany();
+  }, [companyId, navigate]);
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, "");
@@ -29,10 +70,12 @@ const Index = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!company) return;
+    
     setIsLoading(true);
 
     try {
-      const { card } = await findOrCreateClientAndCard(phone, DEFAULT_COMPANY_ID);
+      const { card } = await findOrCreateClientAndCard(phone, company.id);
       
       if (card?.cardcode) {
         navigate(`/card/${card.cardcode}`);
@@ -49,6 +92,21 @@ const Index = () => {
 
   const isValidPhone = phone.replace(/\D/g, "").length === 11;
 
+  if (isLoadingCompany) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground mt-4">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (!company) {
+    return null;
+  }
+
+  const loyaltyText = company.loyaltytext || "Junte 10 carimbos e ganhe um almoço grátis!";
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       {/* Decorative background */}
@@ -56,20 +114,37 @@ const Index = () => {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
       </div>
 
+      {/* Back button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute top-4 left-4 z-20 text-muted-foreground hover:text-foreground"
+        onClick={() => navigate("/")}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Voltar
+      </Button>
+
       <Card className="w-full max-w-md relative z-10 border-primary/20 shadow-xl">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto w-20 h-20 rounded-full gradient-warm flex items-center justify-center mb-4 shadow-lg">
-            <UtensilsCrossed className="w-10 h-10 text-primary-foreground" />
+            {company.elogo ? (
+              <img
+                src={company.elogo}
+                alt={company.name || "Logo"}
+                className="w-14 h-14 rounded-full object-cover"
+              />
+            ) : (
+              <UtensilsCrossed className="w-10 h-10 text-primary-foreground" />
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Meu Restaurante</h1>
+          <h1 className="text-3xl font-bold text-foreground">{company.name || "Empresa"}</h1>
           <p className="text-muted-foreground mt-2">Programa de Fidelidade</p>
         </CardHeader>
 
         <CardContent className="pt-6">
           <div className="text-center mb-6">
-            <p className="text-foreground font-medium">
-              Junte <span className="text-primary font-bold">10 carimbos</span> e ganhe um almoço grátis!
-            </p>
+            <p className="text-foreground font-medium">{loyaltyText}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -112,10 +187,10 @@ const Index = () => {
       </Card>
 
       <p className="text-xs text-muted-foreground mt-8 text-center">
-        Cartão Fidelidade Digital • Meu Restaurante
+        Cartão Fidelidade Digital • {company.name}
       </p>
     </div>
   );
 };
 
-export default Index;
+export default CompanyPage;
