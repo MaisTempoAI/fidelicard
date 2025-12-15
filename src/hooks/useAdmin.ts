@@ -99,6 +99,57 @@ export const addStampToCard = async (cardId: number, currentStamps: number, requ
   return { success: true, newStamps, isCompleted, error: null };
 };
 
+// Update client and card data
+export const updateClientAndCard = async (
+  cardId: number,
+  data: {
+    nome: string;
+    phone: string;
+    cardcode: string;
+    custamp: number;
+    completed: boolean;
+  }
+) => {
+  // First update the card
+  const { error: cardError } = await supabase
+    .from("CRF-Cards")
+    .update({
+      cardcode: data.cardcode,
+      custamp: data.custamp,
+      completed: data.completed,
+      completedat: data.completed ? new Date().toISOString() : null
+    })
+    .eq("id", cardId);
+
+  if (cardError) {
+    return { success: false, error: cardError.message };
+  }
+
+  // Get the card to find the client
+  const { data: card } = await supabase
+    .from("CRF-Cards")
+    .select("idclient")
+    .eq("id", cardId)
+    .single();
+
+  if (card?.idclient) {
+    // Update the client
+    const { error: clientError } = await supabase
+      .from("CRF-Clients")
+      .update({
+        nome: data.nome,
+        phone: data.phone.replace(/\D/g, "")
+      })
+      .eq("cardid", card.idclient);
+
+    if (clientError) {
+      return { success: false, error: clientError.message };
+    }
+  }
+
+  return { success: true, error: null };
+};
+
 // Search clients by phone or cardcode
 export const searchClients = (clients: ClientWithCard[], searchTerm: string) => {
   if (!searchTerm) return clients;

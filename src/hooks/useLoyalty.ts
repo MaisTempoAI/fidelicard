@@ -85,16 +85,21 @@ export const createClient = async (phone: string, companyId: number, nome?: stri
 };
 
 // Cria novo cartão
-export const createCard = async (clientCardId: string, companyId: number) => {
+export const createCard = async (clientCardId: string, companyId: number, requiredStamps: number = 10) => {
   const cardCode = generateCardCode();
+  
+  // Busca o extcode da empresa para usar como idemp
+  const company = await getCompany(companyId);
+  const idemp = company?.extcode || null;
+  
   const { data, error } = await supabase
     .from("CRF-Cards")
     .insert({
       idclient: clientCardId,
-      idemp: null, // idemp é UUID, companyId é número - precisamos ajustar isso
+      idemp: idemp,
       cardcode: cardCode,
       custamp: 0,
-      reqstamp: 10,
+      reqstamp: requiredStamps,
       completed: false,
     })
     .select()

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { UtensilsCrossed, Loader2, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UtensilsCrossed, Loader2, ChevronRight, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
@@ -57,6 +58,17 @@ const Companies = () => {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
       </div>
+
+      {/* Admin Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute top-4 right-4 z-20 text-muted-foreground hover:text-foreground"
+        onClick={() => navigate("/admin")}
+      >
+        <Settings className="w-4 h-4 mr-2" />
+        Admin
+      </Button>
 
       <div className="w-full max-w-md relative z-10">
         {/* Header */}

@@ -4,28 +4,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut } from "lucide-react";
+import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getCompanyClientsWithCards, 
   addStampToCard, 
   searchClients,
+  updateClientAndCard,
   ClientWithCard 
 } from "@/hooks/useAdmin";
+
+interface EditingClient {
+  cardId: number;
+  nome: string;
+  phone: string;
+  cardcode: string;
+  custamp: number;
+  completed: boolean;
+}
 
 const Admin = () => {
   const [search, setSearch] = useState("");
   const [clients, setClients] = useState<ClientWithCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingStamp, setAddingStamp] = useState<number | null>(null);
+  const [editingClient, setEditingClient] = useState<EditingClient | null>(null);
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   const companyId = localStorage.getItem("admin_company_id");
@@ -71,13 +75,52 @@ const Admin = () => {
           ? `Parabéns! ${client.nome || "Cliente"} completou o cartão!` 
           : `Carimbo adicionado! ${newStamps}/${client.reqstamp || requiredStamps}`
       );
-      // Reload clients to update UI
       await loadClients();
     } else {
       toast.error(error || "Erro ao adicionar carimbo");
     }
     
     setAddingStamp(null);
+  };
+
+  const handleEditClick = (client: ClientWithCard) => {
+    setEditingClient({
+      cardId: client.cardId,
+      nome: client.nome || "",
+      phone: client.phone || "",
+      cardcode: client.cardcode || "",
+      custamp: client.custamp || 0,
+      completed: client.completed || false,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingClient) return;
+    
+    setSaving(true);
+    try {
+      const { success, error } = await updateClientAndCard(
+        editingClient.cardId,
+        {
+          nome: editingClient.nome,
+          phone: editingClient.phone,
+          cardcode: editingClient.cardcode,
+          custamp: editingClient.custamp,
+          completed: editingClient.completed,
+        }
+      );
+      
+      if (success) {
+        toast.success("Cliente atualizado com sucesso!");
+        setEditingClient(null);
+        await loadClients();
+      } else {
+        toast.error(error || "Erro ao atualizar cliente");
+      }
+    } catch (err) {
+      toast.error("Erro ao atualizar cliente");
+    }
+    setSaving(false);
   };
 
   const handleLogout = () => {
@@ -166,7 +209,7 @@ const Admin = () => {
           </Card>
         </div>
 
-        {/* Customers Table */}
+        {/* Customers List */}
         <Card className="border-primary/20">
           <CardHeader className="pb-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -190,54 +233,153 @@ const Admin = () => {
                 {search ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Código</TableHead>
-                      <TableHead className="text-center">Carimbos</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Ação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredClients.map((client) => (
-                      <TableRow key={client.clientId}>
-                        <TableCell className="font-medium">{client.nome || "-"}</TableCell>
-                        <TableCell className="text-muted-foreground">{client.phone || "-"}</TableCell>
-                        <TableCell className="text-muted-foreground font-mono text-sm">
-                          {client.cardcode || "-"}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="font-bold text-primary">{client.custamp || 0}</span>
-                          <span className="text-muted-foreground">/{client.reqstamp || requiredStamps}</span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {client.completed ? (
-                            <Badge className="bg-green-500/20 text-green-700 hover:bg-green-500/30">
-                              Completo
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">Em andamento</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-primary/50 hover:bg-primary hover:text-primary-foreground"
-                            onClick={() => handleAddStamp(client)}
-                            disabled={client.completed || addingStamp === client.cardId}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="space-y-4">
+                {filteredClients.map((client) => (
+                  <Card key={client.clientId} className="border-border/50 bg-muted/30">
+                    <CardContent className="p-4">
+                      {editingClient?.cardId === client.cardId ? (
+                        // Edit mode
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+                              <Input
+                                value={editingClient.nome}
+                                onChange={(e) => setEditingClient({...editingClient, nome: e.target.value})}
+                                placeholder="Nome do cliente"
+                                className="border-primary/30"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground mb-1 block">Telefone</label>
+                              <Input
+                                value={editingClient.phone}
+                                onChange={(e) => setEditingClient({...editingClient, phone: e.target.value})}
+                                placeholder="Telefone"
+                                className="border-primary/30"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="text-xs text-muted-foreground mb-1 block">Código</label>
+                              <Input
+                                value={editingClient.cardcode}
+                                onChange={(e) => setEditingClient({...editingClient, cardcode: e.target.value.toUpperCase()})}
+                                placeholder="Código"
+                                className="border-primary/30 font-mono"
+                                maxLength={6}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground mb-1 block">Carimbos</label>
+                              <Input
+                                type="number"
+                                value={editingClient.custamp}
+                                onChange={(e) => setEditingClient({...editingClient, custamp: parseInt(e.target.value) || 0})}
+                                className="border-primary/30"
+                                min={0}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground mb-1 block">Status</label>
+                              <select
+                                value={editingClient.completed ? "completed" : "pending"}
+                                onChange={(e) => setEditingClient({...editingClient, completed: e.target.value === "completed"})}
+                                className="w-full h-10 px-3 rounded-md border border-primary/30 bg-background text-foreground"
+                              >
+                                <option value="pending">Em andamento</option>
+                                <option value="completed">Completo</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setEditingClient(null)}
+                              disabled={saving}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Cancelar
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleSaveEdit}
+                              disabled={saving}
+                              className="gradient-warm"
+                            >
+                              {saving ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                <Check className="w-4 h-4 mr-1" />
+                              )}
+                              Salvar
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        // View mode
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Nome</p>
+                              <p className="font-medium text-foreground">{client.nome || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Telefone</p>
+                              <p className="text-foreground">{client.phone || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Código</p>
+                              <p className="font-mono text-sm text-foreground">{client.cardcode || "-"}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Carimbos</p>
+                              <p className="text-foreground">
+                                <span className="font-bold text-primary text-lg">{client.custamp || 0}</span>
+                                <span className="text-muted-foreground">/{client.reqstamp || requiredStamps}</span>
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Status</p>
+                              {client.completed ? (
+                                <Badge className="bg-green-500/20 text-green-700 hover:bg-green-500/30">
+                                  Completo
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">Em andamento</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-primary/50 hover:bg-primary/10"
+                              onClick={() => handleEditClick(client)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-primary/50 hover:bg-primary hover:text-primary-foreground"
+                              onClick={() => handleAddStamp(client)}
+                              disabled={client.completed || addingStamp === client.cardId}
+                            >
+                              {addingStamp === client.cardId ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Plus className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </CardContent>

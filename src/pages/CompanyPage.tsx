@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { UtensilsCrossed, Loader2, ArrowLeft } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { findOrCreateClientAndCard, getCompany } from "@/hooks/useLoyalty";
 
@@ -123,6 +123,17 @@ const CompanyPage = () => {
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Voltar
+      </Button>
+
+      {/* Admin Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute top-4 right-4 z-20 text-muted-foreground hover:text-foreground"
+        onClick={() => navigate("/admin")}
+      >
+        <Settings className="w-4 h-4 mr-2" />
+        Admin
       </Button>
 
       <Card className="w-full max-w-md relative z-10 border-primary/20 shadow-xl">
