@@ -1,67 +1,146 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, ArrowLeft, Check, PartyPopper } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { UtensilsCrossed, ArrowLeft, Check, PartyPopper, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
+import { addStampToCard } from "@/hooks/useAdmin";
+
+interface CardData {
+  id: number;
+  cardcode: string;
+  custamp: number;
+  reqstamp: number;
+  completed: boolean;
+}
+
+interface ClientData {
+  nome: string | null;
+  phone: string | null;
+}
 
 const AddStamp = () => {
   const { code } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [cardData, setCardData] = useState<CardData | null>(null);
+  const [clientData, setClientData] = useState<ClientData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data
-  const [mockData, setMockData] = useState({
-    external_code: code || "H6KQWA",
-    current_stamps: 4,
-    customer_name: "João Silva",
-    customer_phone: "(11) 99999-1111",
-    is_completed: false,
-  });
+  useEffect(() => {
+    const fetchCardData = async () => {
+      if (!code) {
+        setError("Código do cartão não fornecido");
+        setIsLoading(false);
+        return;
+      }
 
-  const stamps = Array.from({ length: 10 }, (_, i) => i < mockData.current_stamps);
+      try {
+        const card = await getCardByCode(code);
+        
+        if (!card) {
+          setError("Cartão não encontrado");
+          setIsLoading(false);
+          return;
+        }
+
+        setCardData({
+          id: card.id,
+          cardcode: card.cardcode || code,
+          custamp: Number(card.custamp) || 0,
+          reqstamp: Number(card.reqstamp) || 10,
+          completed: card.completed || false,
+        });
+
+        if (card.idclient) {
+          const client = await getClientByCardId(card.idclient);
+          if (client) {
+            setClientData({
+              nome: client.nome,
+              phone: client.phone,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching card:", err);
+        setError("Erro ao carregar dados do cartão");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCardData();
+  }, [code]);
 
   const handleAddStamp = async () => {
-    if (mockData.is_completed) {
-      toast({
-        title: "Cartão já completo",
-        description: "Este cliente já completou o cartão fidelidade.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!cardData || cardData.completed) return;
 
     setIsAdding(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const { success, newStamps, isCompleted, error } = await addStampToCard(
+      cardData.id,
+      cardData.custamp,
+      cardData.reqstamp
+    );
 
-    const newStamps = mockData.current_stamps + 1;
-    const completed = newStamps >= 10;
+    if (success) {
+      setCardData(prev => prev ? {
+        ...prev,
+        custamp: newStamps || prev.custamp + 1,
+        completed: isCompleted || false,
+      } : null);
 
-    setMockData((prev) => ({
-      ...prev,
-      current_stamps: newStamps,
-      is_completed: completed,
-    }));
-
-    if (completed) {
-      setShowConfetti(true);
-      toast({
-        title: "🎉 Parabéns!",
-        description: "O cliente completou o cartão e ganhou um almoço grátis!",
-      });
+      if (isCompleted) {
+        setShowConfetti(true);
+        toast.success("🎉 Parabéns! Cartão completo!", {
+          description: `${clientData?.nome || "Cliente"} ganhou a recompensa!`
+        });
+      } else {
+        toast.success("Carimbo adicionado!", {
+          description: `${newStamps}/${cardData.reqstamp} carimbos`
+        });
+      }
     } else {
-      toast({
-        title: "Carimbo adicionado!",
-        description: `${newStamps}/10 carimbos`,
+      toast.error("Erro ao adicionar carimbo", {
+        description: error || "Tente novamente"
       });
     }
 
     setIsAdding(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground mt-4">Carregando cartão...</p>
+      </div>
+    );
+  }
+
+  if (error || !cardData) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Card className="w-full max-w-sm border-destructive/20">
+          <CardContent className="pt-6 text-center">
+            <p className="text-destructive font-medium">{error || "Cartão não encontrado"}</p>
+            <Button
+              onClick={() => navigate("/admin/scanner")}
+              className="mt-4"
+              variant="outline"
+            >
+              Voltar ao Scanner
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const stamps = Array.from({ length: cardData.reqstamp }, (_, i) => i < cardData.custamp);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
@@ -77,7 +156,7 @@ const AddStamp = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/admin")}
+          onClick={() => navigate("/admin/scanner")}
           className="text-muted-foreground"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -102,15 +181,15 @@ const AddStamp = () => {
         <CardContent className="pt-6 pb-6">
           {/* Customer Info */}
           <div className="text-center mb-6 p-4 bg-secondary/50 rounded-xl">
-            <p className="text-lg font-semibold text-foreground">{mockData.customer_name}</p>
-            <p className="text-muted-foreground text-sm">{mockData.customer_phone}</p>
-            <p className="font-mono text-primary font-bold mt-2">{mockData.external_code}</p>
+            <p className="text-lg font-semibold text-foreground">{clientData?.nome || "Cliente"}</p>
+            <p className="text-muted-foreground text-sm">{clientData?.phone || "-"}</p>
+            <p className="font-mono text-primary font-bold mt-2">{cardData.cardcode}</p>
           </div>
 
           {/* Current stamps */}
           <div className="text-center mb-4">
             <p className="text-3xl font-bold text-primary">
-              Carimbos: {mockData.current_stamps}/10
+              Carimbos: {cardData.custamp}/{cardData.reqstamp}
             </p>
           </div>
 
@@ -133,40 +212,38 @@ const AddStamp = () => {
           {/* Add Stamp Button */}
           <Button
             onClick={handleAddStamp}
-            disabled={isAdding || mockData.is_completed}
+            disabled={isAdding || cardData.completed}
             className={`w-full h-14 text-lg ${
-              mockData.is_completed
+              cardData.completed
                 ? "bg-green-500 hover:bg-green-600"
                 : "gradient-warm hover:opacity-90"
             }`}
           >
-            {mockData.is_completed ? (
+            {cardData.completed ? (
               <>
                 <PartyPopper className="w-5 h-5 mr-2" />
                 Cartão Completo!
               </>
+            ) : isAdding ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Adicionando...
+              </>
             ) : (
               <>
                 <Check className="w-5 h-5 mr-2" />
-                {isAdding ? "Adicionando..." : "Adicionar Carimbo"}
+                Adicionar Carimbo
               </>
             )}
           </Button>
 
-          {mockData.is_completed && (
+          {cardData.completed && (
             <Button
               variant="outline"
               className="w-full mt-3 border-primary/30"
-              onClick={() => {
-                setMockData((prev) => ({ ...prev, current_stamps: 0, is_completed: false }));
-                setShowConfetti(false);
-                toast({
-                  title: "Cartão resetado",
-                  description: "Novo ciclo iniciado para o cliente.",
-                });
-              }}
+              onClick={() => navigate("/admin")}
             >
-              Iniciar Novo Ciclo
+              Voltar ao Painel
             </Button>
           )}
         </CardContent>

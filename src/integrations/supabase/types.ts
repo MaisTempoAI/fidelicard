@@ -54,6 +54,7 @@ export type Database = {
           id: number
           idclient: string | null
           idemp: string | null
+          qrcode: string | null
           reqstamp: number | null
         }
         Insert: {
@@ -65,6 +66,7 @@ export type Database = {
           id?: number
           idclient?: string | null
           idemp?: string | null
+          qrcode?: string | null
           reqstamp?: number | null
         }
         Update: {
@@ -76,6 +78,7 @@ export type Database = {
           id?: number
           idclient?: string | null
           idemp?: string | null
+          qrcode?: string | null
           reqstamp?: number | null
         }
         Relationships: []
