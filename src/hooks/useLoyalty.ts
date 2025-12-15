@@ -93,7 +93,7 @@ export const createCard = async (clientCardId: string, companyId: number, requir
     .insert({
       idclient: clientCardId,
       cardcode: cardCode,
-      custamp: 1,
+      custamp: 0,
       reqstamp: requiredStamps,
       completed: false,
     })
