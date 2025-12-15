@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ChevronRight, Settings } from "lucide-react";
+import { UtensilsCrossed, Loader2, ChevronRight, Settings, Phone, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
@@ -11,6 +11,8 @@ interface Company {
   slug: string | null;
   elogo: string | null;
   active: boolean | null;
+  phone: string | null;
+  address: string | null;
 }
 
 const Companies = () => {
@@ -23,7 +25,7 @@ const Companies = () => {
       try {
         const { data, error } = await supabase
           .from("CRF-Companies")
-          .select("id, name, slug, elogo, active")
+          .select("id, name, slug, elogo, active, phone, address")
           .eq("active", true)
           .order("name");
 
@@ -114,9 +116,18 @@ const Companies = () => {
                     <h2 className="font-semibold text-foreground text-lg truncate">
                       {company.name || "Empresa"}
                     </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Programa de Fidelidade
-                    </p>
+                    {company.phone && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Phone className="w-3 h-3" />
+                        {company.phone}
+                      </p>
+                    )}
+                    {company.address && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                        <MapPin className="w-3 h-3 flex-shrink-0" />
+                        {company.address}
+                      </p>
+                    )}
                   </div>
 
                   {/* Arrow */}
