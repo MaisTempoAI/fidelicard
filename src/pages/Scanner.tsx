@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UtensilsCrossed, ArrowLeft, Camera, Search, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { UtensilsCrossed, ArrowLeft, Camera, Search, Loader2, CheckCircle, XCircle, Check } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
+import { addStampToCard } from "@/hooks/useAdmin";
 
 interface ScannedCard {
+  cardId: number;
   cardcode: string;
   custamp: number;
   reqstamp: number;
@@ -133,6 +135,7 @@ const Scanner = () => {
       }
 
       setScannedCard({
+        cardId: card.id,
         cardcode: card.cardcode || code,
         custamp: Number(card.custamp) || 0,
         reqstamp: Number(card.reqstamp) || 10,
@@ -156,9 +159,34 @@ const Scanner = () => {
     }
   };
 
-  const handleAddStamp = () => {
-    if (scannedCard) {
-      navigate(`/admin/add-stamp/${scannedCard.cardcode}`);
+  const [isAddingStamp, setIsAddingStamp] = useState(false);
+  const [stampAdded, setStampAdded] = useState(false);
+
+  const handleAddStamp = async () => {
+    if (!scannedCard || scannedCard.completed) return;
+    
+    setIsAddingStamp(true);
+    try {
+      await addStampToCard(scannedCard.cardId, scannedCard.custamp, scannedCard.reqstamp);
+      
+      const newStamps = scannedCard.custamp + 1;
+      const isCompleted = newStamps >= scannedCard.reqstamp;
+      
+      setScannedCard({
+        ...scannedCard,
+        custamp: newStamps,
+        completed: isCompleted,
+      });
+      
+      setStampAdded(true);
+      toast.success("Carimbo adicionado!", {
+        description: `${scannedCard.clientName || "Cliente"} agora tem ${newStamps}/${scannedCard.reqstamp} carimbos`
+      });
+    } catch (err) {
+      console.error("Error adding stamp:", err);
+      toast.error("Erro ao adicionar carimbo");
+    } finally {
+      setIsAddingStamp(false);
     }
   };
 
@@ -166,6 +194,7 @@ const Scanner = () => {
     setScannedCard(null);
     setScanError(null);
     setManualCode("");
+    setStampAdded(false);
   };
 
   return (
@@ -234,22 +263,44 @@ const Scanner = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleReset}
-                >
-                  Novo Scan
-                </Button>
-                <Button
-                  className="flex-1 gradient-warm"
-                  onClick={handleAddStamp}
-                  disabled={scannedCard.completed}
-                >
-                  Adicionar Carimbo
-                </Button>
-              </div>
+              {stampAdded ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-lg text-center">
+                    <Check className="w-6 h-6 text-green-600 mx-auto mb-1" />
+                    <p className="font-semibold text-green-700">Carimbo Adicionado!</p>
+                    <p className="text-sm text-green-600">
+                      Agora: <span className="font-bold">{scannedCard.custamp}/{scannedCard.reqstamp}</span> carimbos
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleReset}
+                  >
+                    Escanear Outro Cartão
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleReset}
+                  >
+                    Novo Scan
+                  </Button>
+                  <Button
+                    className="flex-1 gradient-warm"
+                    onClick={handleAddStamp}
+                    disabled={scannedCard.completed || isAddingStamp}
+                  >
+                    {isAddingStamp ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    Adicionar Carimbo
+                  </Button>
+                </div>
+              )}
             </div>
           ) : scanError ? (
             <div className="space-y-4">
