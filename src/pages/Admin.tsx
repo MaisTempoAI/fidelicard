@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Palette } from "lucide-react";
+import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Palette, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getCompanyClientsWithCards, 
@@ -23,6 +23,7 @@ import {
   getCompanyById,
   updateCompanyData,
   updateCompanyCardSettings,
+  rescueCard,
   ClientWithCard,
   Company
 } from "@/hooks/useAdmin";
@@ -56,6 +57,7 @@ const Admin = () => {
   const [clients, setClients] = useState<ClientWithCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingStamp, setAddingStamp] = useState<number | null>(null);
+  const [rescuing, setRescuing] = useState<number | null>(null);
   const [editingClient, setEditingClient] = useState<EditingClient | null>(null);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
@@ -190,6 +192,23 @@ const Admin = () => {
     }
     
     setAddingStamp(null);
+  };
+
+  const handleRescueCard = async (client: ClientWithCard) => {
+    if (!client.cardId || !client.completed || client.rescued) return;
+    
+    setRescuing(client.cardId);
+    
+    const { success, error } = await rescueCard(client.cardId);
+
+    if (success) {
+      toast.success(`Cartão de ${client.nome || "Cliente"} foi resgatado!`);
+      await loadClients();
+    } else {
+      toast.error(error || "Erro ao resgatar cartão");
+    }
+    
+    setRescuing(null);
   };
 
   const handleEditClick = (client: ClientWithCard) => {
@@ -472,7 +491,11 @@ const Admin = () => {
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">Status</p>
-                              {client.completed ? (
+                              {client.rescued ? (
+                                <Badge className="bg-purple-500/20 text-purple-700 hover:bg-purple-500/30">
+                                  Resgatado
+                                </Badge>
+                              ) : client.completed ? (
                                 <Badge className="bg-green-500/20 text-green-700 hover:bg-green-500/30">
                                   Completo
                                 </Badge>
@@ -490,19 +513,37 @@ const Admin = () => {
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-primary/50 hover:bg-primary hover:text-primary-foreground"
-                              onClick={() => handleAddStamp(client)}
-                              disabled={client.completed || addingStamp === client.cardId}
-                            >
-                              {addingStamp === client.cardId ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Plus className="w-4 h-4" />
-                              )}
-                            </Button>
+                            {client.completed && !client.rescued ? (
+                              <Button
+                                size="sm"
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                                onClick={() => handleRescueCard(client)}
+                                disabled={rescuing === client.cardId}
+                              >
+                                {rescuing === client.cardId ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Gift className="w-4 h-4 mr-1" />
+                                    RESGATAR
+                                  </>
+                                )}
+                              </Button>
+                            ) : !client.rescued ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-primary/50 hover:bg-primary hover:text-primary-foreground"
+                                onClick={() => handleAddStamp(client)}
+                                disabled={addingStamp === client.cardId}
+                              >
+                                {addingStamp === client.cardId ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Plus className="w-4 h-4" />
+                                )}
+                              </Button>
+                            ) : null}
                           </div>
                         </div>
                       )}
