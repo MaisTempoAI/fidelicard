@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft, Gift } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 
 interface CardData {
@@ -24,6 +24,9 @@ interface CompanyData {
   loyaltytext: string | null;
   loyaltystamps: string | null;
   exchangeproducts: string | null;
+  elogo: string | null;
+  primarycolour: string | null;
+  secundarycolour: string | null;
 }
 
 const CardPage = () => {
@@ -34,6 +37,7 @@ const CardPage = () => {
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,6 +83,9 @@ const CardPage = () => {
                   loyaltytext: company.loyaltytext,
                   loyaltystamps: company.loyaltystamps,
                   exchangeproducts: company.exchangeproducts,
+                  elogo: company.elogo,
+                  primarycolour: company.primarycolour,
+                  secundarycolour: company.secundarycolour,
                 });
               }
             }
@@ -129,6 +136,9 @@ const CardPage = () => {
   const loyaltyText = companyData?.loyaltytext || `Junte ${requiredStamps} carimbos e ganhe um almoço gratuito!`;
   const exchangeProducts = companyData?.exchangeproducts;
   const remainingStamps = requiredStamps - currentStamps;
+  const primaryColor = companyData?.primarycolour || "#f97316";
+  const secondaryColor = companyData?.secundarycolour || "#ea580c";
+  const companyLogo = companyData?.elogo;
 
   const stamps = Array.from({ length: requiredStamps }, (_, i) => i < currentStamps);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
@@ -153,100 +163,176 @@ const CardPage = () => {
         </Button>
       </div>
 
-      <Card className={`w-full max-w-sm relative z-10 shadow-xl overflow-hidden ${
-        cardData.rescued 
-          ? "border-gray-400/30" 
-          : "border-primary/20"
-      }`}>
-        {/* Rescued Banner */}
-        {cardData.rescued && (
-          <div className="bg-gray-500 text-white text-center py-2 px-4">
-            <div className="flex items-center justify-center gap-2">
-              <Gift className="w-4 h-4" />
-              <span className="font-bold text-sm">CARTÃO RESGATADO</span>
-            </div>
-          </div>
-        )}
+      {/* Flip Card Container */}
+      <div className="flip-card w-full max-w-sm relative z-10">
+        <div className={`flip-card-inner ${isFlipped ? 'flipped' : ''}`}>
+          {/* Front of Card */}
+          <Card className={`flip-card-front w-full shadow-xl overflow-hidden ${
+            cardData.rescued 
+              ? "border-gray-400/30" 
+              : "border-primary/20"
+          }`}>
+            {/* Rescued Banner */}
+            {cardData.rescued && (
+              <div className="bg-gray-500 text-white text-center py-2 px-4">
+                <div className="flex items-center justify-center gap-2">
+                  <Gift className="w-4 h-4" />
+                  <span className="font-bold text-sm">CARTÃO RESGATADO</span>
+                </div>
+              </div>
+            )}
 
-        {/* Header */}
-        <CardHeader className={`text-center pb-4 ${
-          cardData.rescued 
-            ? "bg-gray-400 text-white" 
-            : "gradient-warm text-primary-foreground"
-        }`}>
-          <div className="flex items-center justify-center gap-2">
-            <UtensilsCrossed className="w-6 h-6" />
-            <h1 className="text-xl font-bold">{companyName}</h1>
-          </div>
-          <p className={`text-sm ${cardData.rescued ? "text-white/80" : "text-primary-foreground/80"}`}>
-            {cardData.rescued ? "Cartão Utilizado" : "Fidelidade"}
-          </p>
-        </CardHeader>
+            {/* Header */}
+            <CardHeader className={`text-center pb-4 ${
+              cardData.rescued 
+                ? "bg-gray-400 text-white" 
+                : "gradient-warm text-primary-foreground"
+            }`}>
+              <div className="flex items-center justify-center gap-2">
+                <UtensilsCrossed className="w-6 h-6" />
+                <h1 className="text-xl font-bold">{companyName}</h1>
+              </div>
+              <p className={`text-sm ${cardData.rescued ? "text-white/80" : "text-primary-foreground/80"}`}>
+                {cardData.rescued ? "Cartão Utilizado" : "Fidelidade"}
+              </p>
+            </CardHeader>
 
-        <CardContent className="pt-6 pb-6">
-          {/* Title */}
-          <div className="text-center mb-6">
-            <h2 className="text-base font-semibold text-foreground leading-relaxed text-balance max-w-[280px] mx-auto">
-              {loyaltyText}
-            </h2>
-            <p className="text-3xl font-bold text-primary mt-3">
-              Carimbos: {currentStamps}
-            </p>
-          </div>
+            <CardContent className="pt-6 pb-6">
+              {/* Title */}
+              <div className="text-center mb-6">
+                <h2 className="text-base font-semibold text-foreground leading-relaxed text-balance max-w-[280px] mx-auto">
+                  {loyaltyText}
+                </h2>
+                <p className="text-3xl font-bold text-primary mt-3">
+                  Carimbos: {currentStamps}
+                </p>
+              </div>
 
-          {/* QR Code */}
-          <div className="flex justify-center mb-4">
-            <div className="bg-card p-3 rounded-xl border border-border shadow-sm">
-              <img
-                src={qrCodeUrl}
-                alt="QR Code do cartão"
-                className="w-40 h-40"
-              />
-            </div>
-          </div>
+              {/* QR Code */}
+              <div className="flex justify-center mb-4">
+                <div className="bg-card p-3 rounded-xl border border-border shadow-sm">
+                  <img
+                    src={qrCodeUrl}
+                    alt="QR Code do cartão"
+                    className="w-40 h-40"
+                  />
+                </div>
+              </div>
 
-          {/* External Code */}
-          <div className="text-center mb-6">
-            <span className="font-mono text-2xl font-bold text-primary tracking-widest">
-              {cardData.cardcode}
-            </span>
-          </div>
-
-          {/* Stamps Grid */}
-          <div className="grid grid-cols-5 gap-3 mb-6">
-            {stamps.map((filled, index) => (
-              <div
-                key={index}
-                className={`aspect-square rounded-xl flex items-center justify-center text-2xl transition-all duration-300 ${
-                  filled
-                    ? "bg-[hsl(var(--stamp-filled))] shadow-md"
-                    : "bg-[hsl(var(--stamp-empty))]"
-                }`}
-              >
-                <span className={filled ? "stamp-pulse" : "opacity-40"}>
-                  🍽️
+              {/* External Code */}
+              <div className="text-center mb-6">
+                <span className="font-mono text-2xl font-bold text-primary tracking-widest">
+                  {cardData.cardcode}
                 </span>
               </div>
-            ))}
-          </div>
 
-          {/* Progress text */}
-          <p className="text-center text-muted-foreground text-sm mb-2">
-            {cardData.rescued
-              ? "✅ Este cartão já foi resgatado"
-              : cardData.completed
-              ? "🎉 Parabéns! Você completou seu cartão!"
-              : `Faltam ${remainingStamps} Carimbos para completar seu cartão!`}
-          </p>
+              {/* Stamps Grid */}
+              <div className="grid grid-cols-5 gap-3 mb-6">
+                {stamps.map((filled, index) => (
+                  <div
+                    key={index}
+                    className={`aspect-square rounded-xl flex items-center justify-center text-2xl transition-all duration-300 ${
+                      filled
+                        ? "bg-[hsl(var(--stamp-filled))] shadow-md"
+                        : "bg-[hsl(var(--stamp-empty))]"
+                    }`}
+                  >
+                    <span className={filled ? "stamp-pulse" : "opacity-40"}>
+                      🍽️
+                    </span>
+                  </div>
+                ))}
+              </div>
 
-          {/* Exchange Products - hide if rescued */}
-          {exchangeProducts && !cardData.rescued && (
-            <p className="text-center text-foreground font-medium text-sm">
-              Troque por: <span className="text-primary">{exchangeProducts}</span>
-            </p>
-          )}
-        </CardContent>
-      </Card>
+              {/* Progress text */}
+              <p className="text-center text-muted-foreground text-sm mb-2">
+                {cardData.rescued
+                  ? "✅ Este cartão já foi resgatado"
+                  : cardData.completed
+                  ? "🎉 Parabéns! Você completou seu cartão!"
+                  : `Faltam ${remainingStamps} Carimbos para completar seu cartão!`}
+              </p>
+
+              {/* Exchange Products - hide if rescued */}
+              {exchangeProducts && !cardData.rescued && (
+                <p className="text-center text-foreground font-medium text-sm">
+                  Troque por: <span className="text-primary">{exchangeProducts}</span>
+                </p>
+              )}
+
+              {/* Flip Button */}
+              <div className="flex justify-center mt-4">
+                <Button
+                  onClick={() => setIsFlipped(true)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Virar cartão
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Back of Card */}
+          <Card 
+            className="flip-card-back w-full shadow-xl overflow-hidden border-primary/20"
+            style={{
+              background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`
+            }}
+          >
+            <div className="h-full min-h-[500px] flex flex-col items-center justify-center p-8 relative">
+              {/* Decorative pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-4 left-4 w-20 h-20 border-2 border-white rounded-full" />
+                <div className="absolute bottom-4 right-4 w-32 h-32 border-2 border-white rounded-full" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-white rounded-full" />
+              </div>
+
+              {/* Company Logo or Name */}
+              <div className="relative z-10 text-center">
+                {companyLogo ? (
+                  <img 
+                    src={companyLogo} 
+                    alt={companyName}
+                    className="w-32 h-32 object-contain mx-auto mb-6 drop-shadow-lg"
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-6">
+                    <UtensilsCrossed className="w-16 h-16 text-white" />
+                  </div>
+                )}
+                
+                <h2 className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
+                  {companyName}
+                </h2>
+                <p className="text-white/80 text-sm">
+                  Cartão Fidelidade
+                </p>
+              </div>
+
+              {/* Card Code */}
+              <div className="mt-8 bg-white/20 px-6 py-3 rounded-xl">
+                <span className="font-mono text-xl font-bold text-white tracking-widest">
+                  {cardData.cardcode}
+                </span>
+              </div>
+
+              {/* Flip Button */}
+              <Button
+                onClick={() => setIsFlipped(false)}
+                variant="secondary"
+                size="sm"
+                className="mt-8 gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Voltar
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
 
       <p className="text-xs text-muted-foreground mt-6 text-center">
         Mostre este QR Code ao atendente para ganhar seu carimbo

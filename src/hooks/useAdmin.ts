@@ -145,17 +145,43 @@ export const getCompanyClientsWithCards = async (companyId: number) => {
   return { clients: clientsWithCards, error: null };
 };
 
+// Format date to Brazilian format DD/MM/YYYY | HH:mm
+const formatEventDate = (date: Date): string => {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${day}/${month}/${year} | ${hours}:${minutes}`;
+};
+
 // Add stamp to a card
 export const addStampToCard = async (cardId: number, currentStamps: number, requiredStamps: number) => {
+  // First, get current events from the card
+  const { data: cardData } = await supabase
+    .from("CRF-Cards")
+    .select("events")
+    .eq("id", cardId)
+    .single();
+
   const newStamps = currentStamps + 1;
   const isCompleted = newStamps >= requiredStamps;
+  
+  // Format new event entry
+  const eventDate = formatEventDate(new Date());
+  const newEvent = `${newStamps}carimbo='${eventDate}'`;
+  
+  // Append to existing events or start new
+  const currentEvents = cardData?.events || '';
+  const updatedEvents = currentEvents ? `${currentEvents};${newEvent}` : newEvent;
 
   const { error } = await supabase
     .from("CRF-Cards")
     .update({ 
       custamp: newStamps,
       completed: isCompleted,
-      completedat: isCompleted ? new Date().toISOString() : null
+      completedat: isCompleted ? new Date().toISOString() : null,
+      events: updatedEvents
     })
     .eq("id", cardId);
 

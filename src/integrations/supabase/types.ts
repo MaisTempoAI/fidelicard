@@ -51,6 +51,7 @@ export type Database = {
           completedat: string | null
           created_at: string
           custamp: number | null
+          events: string | null
           id: number
           idclient: string | null
           idemp: string | null
@@ -64,6 +65,7 @@ export type Database = {
           completedat?: string | null
           created_at?: string
           custamp?: number | null
+          events?: string | null
           id?: number
           idclient?: string | null
           idemp?: string | null
@@ -77,6 +79,7 @@ export type Database = {
           completedat?: string | null
           created_at?: string
           custamp?: number | null
+          events?: string | null
           id?: number
           idclient?: string | null
           idemp?: string | null
@@ -139,6 +142,7 @@ export type Database = {
           phone: string | null
           primarycolour: string | null
           qrcodeurl: string | null
+          secundarycolour: string | null
           slug: string | null
           user: string | null
         }
@@ -158,6 +162,7 @@ export type Database = {
           phone?: string | null
           primarycolour?: string | null
           qrcodeurl?: string | null
+          secundarycolour?: string | null
           slug?: string | null
           user?: string | null
         }
@@ -177,6 +182,7 @@ export type Database = {
           phone?: string | null
           primarycolour?: string | null
           qrcodeurl?: string | null
+          secundarycolour?: string | null
           slug?: string | null
           user?: string | null
         }
