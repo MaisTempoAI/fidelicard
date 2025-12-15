@@ -88,15 +88,10 @@ export const createClient = async (phone: string, companyId: number, nome?: stri
 export const createCard = async (clientCardId: string, companyId: number, requiredStamps: number = 10) => {
   const cardCode = generateCardCode();
   
-  // Busca o extcode da empresa para usar como idemp
-  const company = await getCompany(companyId);
-  const idemp = company?.extcode || null;
-  
   const { data, error } = await supabase
     .from("CRF-Cards")
     .insert({
       idclient: clientCardId,
-      idemp: idemp,
       cardcode: cardCode,
       custamp: 0,
       reqstamp: requiredStamps,
