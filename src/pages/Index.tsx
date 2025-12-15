@@ -3,10 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { findOrCreateClientAndCard } from "@/hooks/useLoyalty";
+
+// ID da empresa padrão (você pode mudar isso depois ou buscar dinamicamente)
+const DEFAULT_COMPANY_ID = 1;
 
 const Index = () => {
   const [phone, setPhone] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const formatPhone = (value: string) => {
@@ -21,10 +27,24 @@ const Index = () => {
     setPhone(formatted);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock: redireciona para um cartão fictício
-    navigate("/card/H6KQWA");
+    setIsLoading(true);
+
+    try {
+      const { card } = await findOrCreateClientAndCard(phone, DEFAULT_COMPANY_ID);
+      
+      if (card?.cardcode) {
+        navigate(`/card/${card.cardcode}`);
+      } else {
+        toast.error("Erro ao criar cartão. Tente novamente.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Erro ao acessar o cartão. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const isValidPhone = phone.replace(/\D/g, "").length === 11;
@@ -65,15 +85,23 @@ const Index = () => {
                 onChange={handlePhoneChange}
                 maxLength={16}
                 className="text-center text-lg h-12 border-primary/30 focus:border-primary"
+                disabled={isLoading}
               />
             </div>
 
             <Button
               type="submit"
               className="w-full h-12 text-lg gradient-warm hover:opacity-90 transition-opacity"
-              disabled={!isValidPhone}
+              disabled={!isValidPhone || isLoading}
             >
-              Acessar Meu Cartão
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Carregando...
+                </>
+              ) : (
+                "Acessar Meu Cartão"
+              )}
             </Button>
           </form>
 

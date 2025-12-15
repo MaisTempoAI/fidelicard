@@ -1,25 +1,134 @@
 import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Plus } from "lucide-react";
+import { UtensilsCrossed, Plus, Loader2 } from "lucide-react";
+import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
+
+interface CardData {
+  cardcode: string;
+  custamp: number;
+  reqstamp: number;
+  completed: boolean;
+}
+
+interface ClientData {
+  nome: string | null;
+  phone: string | null;
+  stamps: number | null;
+}
+
+interface CompanyData {
+  name: string | null;
+  loyaltytext: string | null;
+  loyaltystamps: string | null;
+}
 
 const CardPage = () => {
   const { code } = useParams();
-  
-  // Mock data
-  const mockData = {
-    external_code: code || "H6KQWA",
-    current_stamps: 4,
-    customer_name: "João Silva",
-    is_completed: false,
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [cardData, setCardData] = useState<CardData | null>(null);
+  const [clientData, setClientData] = useState<ClientData | null>(null);
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const stamps = Array.from({ length: 10 }, (_, i) => i < mockData.current_stamps);
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!code) {
+        setError("Código do cartão não encontrado");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Busca o cartão pelo código
+        const card = await getCardByCode(code);
+        if (!card) {
+          setError("Cartão não encontrado");
+          setIsLoading(false);
+          return;
+        }
+
+        setCardData({
+          cardcode: card.cardcode || code,
+          custamp: Number(card.custamp) || 0,
+          reqstamp: Number(card.reqstamp) || 10,
+          completed: card.completed || false,
+        });
+
+        // Busca o cliente pelo cardid
+        if (card.idclient) {
+          const client = await getClientByCardId(card.idclient);
+          if (client) {
+            setClientData({
+              nome: client.nome,
+              phone: client.phone,
+              stamps: Number(client.stamps) || 0,
+            });
+
+            // Busca a empresa pelo eid do cliente
+            if (client.eid) {
+              const company = await getCompany(Number(client.eid));
+              if (company) {
+                setCompanyData({
+                  name: company.name,
+                  loyaltytext: company.loyaltytext,
+                  loyaltystamps: company.loyaltystamps,
+                });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching card data:", err);
+        setError("Erro ao carregar dados do cartão");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [code]);
 
   const handleAddToHome = () => {
     alert("Para adicionar ao início:\n\niPhone: Toque em Compartilhar → Adicionar à Tela de Início\n\nAndroid: Menu ⋮ → Adicionar à tela inicial");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground mt-4">Carregando seu cartão...</p>
+      </div>
+    );
+  }
+
+  if (error || !cardData) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Card className="w-full max-w-sm border-destructive/20">
+          <CardContent className="pt-6 text-center">
+            <p className="text-destructive font-medium">{error || "Cartão não encontrado"}</p>
+            <Button
+              onClick={() => window.location.href = "/"}
+              className="mt-4"
+              variant="outline"
+            >
+              Voltar ao início
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const currentStamps = cardData.custamp;
+  const requiredStamps = cardData.reqstamp;
+  const companyName = companyData?.name || "Meu Restaurante";
+  const loyaltyText = companyData?.loyaltytext || `Junte ${requiredStamps} carimbos e ganhe um almoço gratuito!`;
+
+  const stamps = Array.from({ length: requiredStamps }, (_, i) => i < currentStamps);
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -33,7 +142,7 @@ const CardPage = () => {
         <CardHeader className="gradient-warm text-primary-foreground text-center pb-4">
           <div className="flex items-center justify-center gap-2">
             <UtensilsCrossed className="w-6 h-6" />
-            <h1 className="text-xl font-bold">Meu Restaurante</h1>
+            <h1 className="text-xl font-bold">{companyName}</h1>
           </div>
           <p className="text-primary-foreground/80 text-sm">Fidelidade</p>
         </CardHeader>
@@ -42,10 +151,10 @@ const CardPage = () => {
           {/* Title */}
           <div className="text-center mb-6">
             <h2 className="text-lg font-semibold text-foreground">
-              Junte 10 carimbos e ganhe um almoço gratuito!
+              {loyaltyText}
             </h2>
             <p className="text-3xl font-bold text-primary mt-2">
-              Carimbos: {mockData.current_stamps}
+              Carimbos: {currentStamps}
             </p>
           </div>
 
@@ -63,7 +172,7 @@ const CardPage = () => {
           {/* External Code */}
           <div className="text-center mb-6">
             <span className="font-mono text-2xl font-bold text-primary tracking-widest">
-              {mockData.external_code}
+              {cardData.cardcode}
             </span>
           </div>
 
@@ -87,9 +196,9 @@ const CardPage = () => {
 
           {/* Progress text */}
           <p className="text-center text-muted-foreground text-sm mb-4">
-            {mockData.is_completed
+            {cardData.completed
               ? "🎉 Parabéns! Você ganhou um almoço grátis!"
-              : `Faltam ${10 - mockData.current_stamps} carimbos para o almoço grátis`}
+              : `Faltam ${requiredStamps - currentStamps} carimbos para o almoço grátis`}
           </p>
 
           {/* Add to Home Button */}
