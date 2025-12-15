@@ -4,14 +4,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getCompanyClientsWithCards, 
   addStampToCard, 
   searchClients,
   updateClientAndCard,
-  ClientWithCard 
+  getCompanyById,
+  updateCompanyData,
+  updateCompanyCardSettings,
+  ClientWithCard,
+  Company
 } from "@/hooks/useAdmin";
 
 interface EditingClient {
@@ -23,6 +36,21 @@ interface EditingClient {
   completed: boolean;
 }
 
+interface CompanyDataForm {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+}
+
+interface CardSettingsForm {
+  loyaltystamps: string;
+  loyaltytext: string;
+  exchangeproducts: string;
+  primarycolour: string;
+  elogo: string;
+}
+
 const Admin = () => {
   const [search, setSearch] = useState("");
   const [clients, setClients] = useState<ClientWithCard[]>([]);
@@ -31,6 +59,24 @@ const Admin = () => {
   const [editingClient, setEditingClient] = useState<EditingClient | null>(null);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
+
+  // Company edit modals
+  const [showCompanyDataModal, setShowCompanyDataModal] = useState(false);
+  const [showCardSettingsModal, setShowCardSettingsModal] = useState(false);
+  const [companyDataForm, setCompanyDataForm] = useState<CompanyDataForm>({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+  });
+  const [cardSettingsForm, setCardSettingsForm] = useState<CardSettingsForm>({
+    loyaltystamps: "",
+    loyaltytext: "",
+    exchangeproducts: "",
+    primarycolour: "",
+    elogo: "",
+  });
+  const [savingCompany, setSavingCompany] = useState(false);
 
   const companyId = localStorage.getItem("admin_company_id");
   const companyName = localStorage.getItem("admin_company_name") || "Minha Empresa";
@@ -56,6 +102,69 @@ const Admin = () => {
       setClients(data);
     }
     setLoading(false);
+  };
+
+  const loadCompanyData = async () => {
+    if (!companyId) return;
+    
+    const { company, error } = await getCompanyById(parseInt(companyId));
+    if (company) {
+      setCompanyDataForm({
+        name: company.name || "",
+        phone: company.phone || "",
+        email: company.email || "",
+        address: company.address || "",
+      });
+      setCardSettingsForm({
+        loyaltystamps: company.loyaltystamps || "",
+        loyaltytext: company.loyaltytext || "",
+        exchangeproducts: company.exchangeproducts || "",
+        primarycolour: company.primarycolour || "",
+        elogo: company.elogo || "",
+      });
+    }
+  };
+
+  const handleOpenCompanyDataModal = async () => {
+    await loadCompanyData();
+    setShowCompanyDataModal(true);
+  };
+
+  const handleOpenCardSettingsModal = async () => {
+    await loadCompanyData();
+    setShowCardSettingsModal(true);
+  };
+
+  const handleSaveCompanyData = async () => {
+    if (!companyId) return;
+    
+    setSavingCompany(true);
+    const { success, error } = await updateCompanyData(parseInt(companyId), companyDataForm);
+    
+    if (success) {
+      toast.success("Dados da empresa atualizados!");
+      localStorage.setItem("admin_company_name", companyDataForm.name);
+      setShowCompanyDataModal(false);
+    } else {
+      toast.error(error || "Erro ao salvar dados");
+    }
+    setSavingCompany(false);
+  };
+
+  const handleSaveCardSettings = async () => {
+    if (!companyId) return;
+    
+    setSavingCompany(true);
+    const { success, error } = await updateCompanyCardSettings(parseInt(companyId), cardSettingsForm);
+    
+    if (success) {
+      toast.success("Configurações do cartão atualizadas!");
+      localStorage.setItem("admin_company_stamps", cardSettingsForm.loyaltystamps);
+      setShowCardSettingsModal(false);
+    } else {
+      toast.error(error || "Erro ao salvar configurações");
+    }
+    setSavingCompany(false);
   };
 
   const handleAddStamp = async (client: ClientWithCard) => {
@@ -161,6 +270,26 @@ const Admin = () => {
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Company Edit Buttons */}
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant="outline"
+            className="border-primary/30 hover:bg-primary/10"
+            onClick={handleOpenCompanyDataModal}
+          >
+            <Building className="w-4 h-4 mr-2" />
+            Editar Dados Empresa
+          </Button>
+          <Button
+            variant="outline"
+            className="border-primary/30 hover:bg-primary/10"
+            onClick={handleOpenCardSettingsModal}
+          >
+            <Palette className="w-4 h-4 mr-2" />
+            Editar Seu Cartão
+          </Button>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="border-primary/20">
@@ -385,6 +514,156 @@ const Admin = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Company Data Modal */}
+      <Dialog open={showCompanyDataModal} onOpenChange={setShowCompanyDataModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building className="w-5 h-5" />
+              Editar Dados da Empresa
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="company-name">Nome</Label>
+              <Input
+                id="company-name"
+                value={companyDataForm.name}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, name: e.target.value})}
+                placeholder="Nome da empresa"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company-phone">Telefone</Label>
+              <Input
+                id="company-phone"
+                value={companyDataForm.phone}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, phone: e.target.value})}
+                placeholder="Telefone"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company-email">Email</Label>
+              <Input
+                id="company-email"
+                type="email"
+                value={companyDataForm.email}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, email: e.target.value})}
+                placeholder="Email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company-address">Endereço</Label>
+              <Input
+                id="company-address"
+                value={companyDataForm.address}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, address: e.target.value})}
+                placeholder="Endereço"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCompanyDataModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveCompanyData} disabled={savingCompany} className="gradient-warm">
+              {savingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Card Settings Modal */}
+      <Dialog open={showCardSettingsModal} onOpenChange={setShowCardSettingsModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Palette className="w-5 h-5" />
+              Editar Seu Cartão
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="loyalty-stamps">Quantidade de Carimbos</Label>
+              <Input
+                id="loyalty-stamps"
+                type="number"
+                value={cardSettingsForm.loyaltystamps}
+                onChange={(e) => setCardSettingsForm({...cardSettingsForm, loyaltystamps: e.target.value})}
+                placeholder="Ex: 10"
+                min={1}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="loyalty-text">Texto Exibido no Cartão</Label>
+              <Textarea
+                id="loyalty-text"
+                value={cardSettingsForm.loyaltytext}
+                onChange={(e) => setCardSettingsForm({...cardSettingsForm, loyaltytext: e.target.value})}
+                placeholder="Ex: Junte 10 carimbos e ganhe um almoço grátis!"
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="exchange-products">Produto para Troca</Label>
+              <Input
+                id="exchange-products"
+                value={cardSettingsForm.exchangeproducts}
+                onChange={(e) => setCardSettingsForm({...cardSettingsForm, exchangeproducts: e.target.value})}
+                placeholder="Ex: 1 Marmita, 1 Sorvete"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="primary-colour">Cor Base do Cartão</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="primary-colour"
+                  value={cardSettingsForm.primarycolour}
+                  onChange={(e) => setCardSettingsForm({...cardSettingsForm, primarycolour: e.target.value})}
+                  placeholder="Ex: #FF6B35"
+                  className="flex-1"
+                />
+                <input
+                  type="color"
+                  value={cardSettingsForm.primarycolour || "#FF6B35"}
+                  onChange={(e) => setCardSettingsForm({...cardSettingsForm, primarycolour: e.target.value})}
+                  className="w-10 h-10 rounded border border-input cursor-pointer"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="elogo">URL do Logo</Label>
+              <Input
+                id="elogo"
+                value={cardSettingsForm.elogo}
+                onChange={(e) => setCardSettingsForm({...cardSettingsForm, elogo: e.target.value})}
+                placeholder="https://exemplo.com/logo.png"
+              />
+              {cardSettingsForm.elogo && (
+                <div className="mt-2 p-2 border rounded-lg bg-muted/50">
+                  <img
+                    src={cardSettingsForm.elogo}
+                    alt="Preview do logo"
+                    className="w-20 h-20 object-contain mx-auto"
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCardSettingsModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveCardSettings} disabled={savingCompany} className="gradient-warm">
+              {savingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
