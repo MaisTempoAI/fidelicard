@@ -27,6 +27,31 @@ export const getCompany = async (companyId: number) => {
   return data;
 };
 
+// Busca empresa por ID (número) ou urlsite (slug)
+export const getCompanyByIdOrSlug = async (identifier: string) => {
+  // Se for número, busca por ID
+  const numericId = Number(identifier);
+  if (!isNaN(numericId) && identifier === String(numericId)) {
+    const { data, error } = await supabase
+      .from("CRF-Companies")
+      .select("*")
+      .eq("id", numericId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  // Se não for número, busca por urlsite (case-insensitive)
+  const { data, error } = await supabase
+    .from("CRF-Companies")
+    .select("*")
+    .ilike("urlsite", identifier)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+};
+
 // Busca cliente por telefone e empresa
 export const getClientByPhone = async (phone: string, companyId: number) => {
   const cleanedPhone = cleanPhone(phone);

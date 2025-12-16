@@ -7,7 +7,8 @@ import { UtensilsCrossed, Loader2, ArrowLeft, Plus, CheckCircle, Clock, Gift, Us
 import { toast } from "sonner";
 import { 
   getClientByPhone, 
-  getCompany, 
+  getCompany,
+  getCompanyByIdOrSlug, 
   getAllCardsByClient,
   createNewCardForClient,
   createClient,
@@ -66,7 +67,7 @@ const ClientCards = () => {
       }
 
       try {
-        const companyData = await getCompany(Number(companyId));
+        const companyData = await getCompanyByIdOrSlug(companyId!);
         if (!companyData) {
           toast.error("Empresa não encontrada");
           navigate("/");
@@ -81,7 +82,7 @@ const ClientCards = () => {
         });
 
         // Busca cliente
-        const client = await getClientByPhone(phone, Number(companyId));
+        const client = await getClientByPhone(phone, companyData.id);
         
         // Se não existe, mostra formulário de nome
         if (!client) {
@@ -136,12 +137,12 @@ const ClientCards = () => {
   const checkAndShowPromotions = async (cardId: string, companyData: any) => {
     setLoadingPromotions(true);
     try {
-      const { coCards, error } = await getActiveCoCards(Number(companyId));
+      const { coCards, error } = await getActiveCoCards(companyData.id);
       
       if (error || coCards.length === 0) {
         // Sem promoções ativas, cria cartão com configurações padrão da empresa
         const requiredStamps = companyData.loyaltystamps ? Number(companyData.loyaltystamps) : 10;
-        const newCard = await createCard(cardId, Number(companyId), requiredStamps);
+        const newCard = await createCard(cardId, companyData.id, requiredStamps);
         setCards([{
           id: newCard.id,
           cardcode: newCard.cardcode,
@@ -201,11 +202,11 @@ const ClientCards = () => {
 
     setIsSubmittingName(true);
     try {
-      const newClient = await createClient(phone, Number(companyId), clientName.trim());
+      const newClient = await createClient(phone, company!.id, clientName.trim());
       setShowNameForm(false);
       setClientCardId(newClient.cardid!);
       
-      const companyData = await getCompany(Number(companyId));
+      const companyData = await getCompany(company!.id);
       await checkAndShowPromotions(newClient.cardid!, companyData);
     } catch (error) {
       console.error("Error creating client:", error);
