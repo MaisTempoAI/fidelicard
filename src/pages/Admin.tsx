@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Palette, Gift, Megaphone, Trash2 } from "lucide-react";
+import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Gift, Trash2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getCompanyClientsWithCards, 
@@ -23,7 +23,6 @@ import {
   updateClientAndCard,
   getCompanyById,
   updateCompanyData,
-  updateCompanyCardSettings,
   rescueCard,
   ClientWithCard,
   Company
@@ -52,13 +51,6 @@ interface CompanyDataForm {
   address: string;
 }
 
-interface CardSettingsForm {
-  loyaltystamps: string;
-  loyaltytext: string;
-  exchangeproducts: string;
-  primarycolour: string;
-  elogo: string;
-}
 
 interface CoCardForm {
   id?: number;
@@ -84,19 +76,11 @@ const Admin = () => {
 
   // Company edit modals
   const [showCompanyDataModal, setShowCompanyDataModal] = useState(false);
-  const [showCardSettingsModal, setShowCardSettingsModal] = useState(false);
   const [companyDataForm, setCompanyDataForm] = useState<CompanyDataForm>({
     name: "",
     phone: "",
     email: "",
     address: "",
-  });
-  const [cardSettingsForm, setCardSettingsForm] = useState<CardSettingsForm>({
-    loyaltystamps: "",
-    loyaltytext: "",
-    exchangeproducts: "",
-    primarycolour: "",
-    elogo: "",
   });
   const [savingCompany, setSavingCompany] = useState(false);
 
@@ -155,13 +139,6 @@ const Admin = () => {
         email: company.email || "",
         address: company.address || "",
       });
-      setCardSettingsForm({
-        loyaltystamps: company.loyaltystamps || "",
-        loyaltytext: company.loyaltytext || "",
-        exchangeproducts: company.exchangeproducts || "",
-        primarycolour: company.primarycolour || "",
-        elogo: company.elogo || "",
-      });
     }
   };
 
@@ -170,18 +147,13 @@ const Admin = () => {
     setShowCompanyDataModal(true);
   };
 
-  const handleOpenCardSettingsModal = async () => {
-    await loadCompanyData();
-    setShowCardSettingsModal(true);
-  };
-
   // Promotions (CoCards) handlers
   const loadCoCards = async () => {
     if (!companyId) return;
     setLoadingCoCards(true);
     const { coCards: data, error } = await getCompanyCoCards(parseInt(companyId));
     if (error) {
-      toast.error("Erro ao carregar promoções");
+      toast.error("Erro ao carregar cartões");
     } else {
       setCoCards(data);
     }
@@ -243,7 +215,7 @@ const Admin = () => {
           active: coCardForm.active,
         });
         if (success) {
-          toast.success("Promoção atualizada!");
+          toast.success("Cartão atualizado!");
         } else {
           toast.error(error || "Erro ao atualizar");
         }
@@ -260,7 +232,7 @@ const Admin = () => {
           active: coCardForm.active,
         });
         if (coCard) {
-          toast.success("Promoção criada!");
+          toast.success("Cartão criado!");
         } else {
           toast.error(error || "Erro ao criar");
         }
@@ -268,7 +240,7 @@ const Admin = () => {
       await loadCoCards();
       setShowCoCardForm(false);
     } catch (err) {
-      toast.error("Erro ao salvar promoção");
+      toast.error("Erro ao salvar cartão");
     }
     setSavingCoCard(false);
   };
@@ -277,7 +249,7 @@ const Admin = () => {
     setDeletingCoCard(coCardId);
     const { success, error } = await deleteCoCard(coCardId);
     if (success) {
-      toast.success("Promoção excluída!");
+      toast.success("Cartão excluído!");
       await loadCoCards();
     } else {
       toast.error(error || "Erro ao excluir");
@@ -301,21 +273,6 @@ const Admin = () => {
     setSavingCompany(false);
   };
 
-  const handleSaveCardSettings = async () => {
-    if (!companyId) return;
-    
-    setSavingCompany(true);
-    const { success, error } = await updateCompanyCardSettings(parseInt(companyId), cardSettingsForm);
-    
-    if (success) {
-      toast.success("Configurações do cartão atualizadas!");
-      localStorage.setItem("admin_company_stamps", cardSettingsForm.loyaltystamps);
-      setShowCardSettingsModal(false);
-    } else {
-      toast.error(error || "Erro ao salvar configurações");
-    }
-    setSavingCompany(false);
-  };
 
   const handleAddStamp = async (client: ClientWithCard) => {
     if (!client.cardId || client.completed) return;
@@ -450,18 +407,10 @@ const Admin = () => {
           <Button
             variant="outline"
             className="border-primary/30 hover:bg-primary/10"
-            onClick={handleOpenCardSettingsModal}
-          >
-            <Palette className="w-4 h-4 mr-2" />
-            Editar Seu Cartão
-          </Button>
-          <Button
-            variant="outline"
-            className="border-primary/30 hover:bg-primary/10"
             onClick={handleOpenPromotionsModal}
           >
-            <Megaphone className="w-4 h-4 mr-2" />
-            Gerenciar Promoções
+            <CreditCard className="w-4 h-4 mr-2" />
+            Gerenciar Cartões
           </Button>
         </div>
 
@@ -772,103 +721,14 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Card Settings Modal */}
-      <Dialog open={showCardSettingsModal} onOpenChange={setShowCardSettingsModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Palette className="w-5 h-5" />
-              Editar Seu Cartão
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="loyalty-stamps">Quantidade de Carimbos</Label>
-              <Input
-                id="loyalty-stamps"
-                type="number"
-                value={cardSettingsForm.loyaltystamps}
-                onChange={(e) => setCardSettingsForm({...cardSettingsForm, loyaltystamps: e.target.value})}
-                placeholder="Ex: 10"
-                min={1}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="loyalty-text">Texto Exibido no Cartão</Label>
-              <Textarea
-                id="loyalty-text"
-                value={cardSettingsForm.loyaltytext}
-                onChange={(e) => setCardSettingsForm({...cardSettingsForm, loyaltytext: e.target.value})}
-                placeholder="Ex: Junte 10 carimbos e ganhe um almoço grátis!"
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="exchange-products">Produto para Troca</Label>
-              <Input
-                id="exchange-products"
-                value={cardSettingsForm.exchangeproducts}
-                onChange={(e) => setCardSettingsForm({...cardSettingsForm, exchangeproducts: e.target.value})}
-                placeholder="Ex: 1 Marmita, 1 Sorvete"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="primary-colour">Cor Base do Cartão</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="primary-colour"
-                  value={cardSettingsForm.primarycolour}
-                  onChange={(e) => setCardSettingsForm({...cardSettingsForm, primarycolour: e.target.value})}
-                  placeholder="Ex: #FF6B35"
-                  className="flex-1"
-                />
-                <input
-                  type="color"
-                  value={cardSettingsForm.primarycolour || "#FF6B35"}
-                  onChange={(e) => setCardSettingsForm({...cardSettingsForm, primarycolour: e.target.value})}
-                  className="w-10 h-10 rounded border border-input cursor-pointer"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="elogo">URL do Logo</Label>
-              <Input
-                id="elogo"
-                value={cardSettingsForm.elogo}
-                onChange={(e) => setCardSettingsForm({...cardSettingsForm, elogo: e.target.value})}
-                placeholder="https://exemplo.com/logo.png"
-              />
-              {cardSettingsForm.elogo && (
-                <div className="mt-2 p-2 border rounded-lg bg-muted/50">
-                  <img
-                    src={cardSettingsForm.elogo}
-                    alt="Preview do logo"
-                    className="w-20 h-20 object-contain mx-auto"
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCardSettingsModal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveCardSettings} disabled={savingCompany} className="gradient-warm">
-              {savingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* Promotions (CoCards) Modal */}
+      {/* Cartões (CoCards) Modal */}
       <Dialog open={showPromotionsModal} onOpenChange={setShowPromotionsModal}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Megaphone className="w-5 h-5" />
-              Gerenciar Promoções
+              <CreditCard className="w-5 h-5" />
+              Gerenciar Cartões
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -877,59 +737,59 @@ const Admin = () => {
               className="w-full gradient-warm"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nova Promoção
+              + Novo Cartão
             </Button>
 
             {loadingCoCards ? (
               <div className="text-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                <p className="text-sm text-muted-foreground mt-2">Carregando promoções...</p>
+                <p className="text-sm text-muted-foreground mt-2">Carregando cartões...</p>
               </div>
             ) : coCards.length === 0 ? (
               <div className="text-center py-8">
-                <Gift className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Nenhuma promoção cadastrada</p>
-                <p className="text-xs text-muted-foreground">Crie sua primeira promoção para começar</p>
+                <Gift className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">Nenhum cartão cadastrado</p>
+                <p className="text-xs text-muted-foreground">Crie seu primeiro cartão para começar</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {coCards.map((coCard) => (
-                  <Card key={coCard.id} className="border-border/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
+                  <Card key={coCard.id} className="border-border/50 overflow-hidden">
+                    <div
+                      className="h-3"
+                      style={{ background: `linear-gradient(135deg, ${coCard.pricolour || '#FF6B35'}, ${coCard.seccolour || '#F7931E'})` }}
+                    />
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-foreground truncate">{coCard.name}</span>
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-bold text-lg text-foreground">{coCard.name}</span>
                             {coCard.active ? (
-                              <Badge className="bg-green-500/20 text-green-700 text-xs">Ativa</Badge>
+                              <Badge className="bg-green-500/20 text-green-700">Ativo</Badge>
                             ) : (
-                              <Badge variant="secondary" className="text-xs">Inativa</Badge>
+                              <Badge variant="secondary">Inativo</Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{coCard.text}</p>
-                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                            <span className="bg-muted px-2 py-0.5 rounded">{coCard.stamps} carimbos</span>
-                            <span className="bg-muted px-2 py-0.5 rounded">{coCard.days} dias</span>
-                            {coCard.prod && <span className="bg-muted px-2 py-0.5 rounded">{coCard.prod}</span>}
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{coCard.text}</p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="bg-muted px-3 py-1 rounded-full text-sm font-medium">{coCard.stamps} carimbos</span>
+                            <span className="bg-muted px-3 py-1 rounded-full text-sm font-medium">{coCard.days} dias</span>
+                            {coCard.prod && <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">{coCard.prod}</span>}
                           </div>
                         </div>
-                        <div className="flex gap-1 shrink-0">
-                          <div
-                            className="w-6 h-6 rounded-full border-2 border-border"
-                            style={{ background: `linear-gradient(135deg, ${coCard.pricolour || '#FF6B35'}, ${coCard.seccolour || '#F7931E'})` }}
-                          />
+                        <div className="flex gap-2 shrink-0">
                           <Button
                             size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
+                            variant="outline"
+                            className="h-10 w-10"
                             onClick={() => handleOpenCoCardForm(coCard)}
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
                           <Button
                             size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            variant="outline"
+                            className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => handleDeleteCoCard(coCard.id)}
                             disabled={deletingCoCard === coCard.id}
                           >
@@ -956,17 +816,17 @@ const Admin = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gift className="w-5 h-5" />
-              {coCardForm.id ? "Editar Promoção" : "Nova Promoção"}
+              {coCardForm.id ? "Editar Cartão" : "Novo Cartão"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="cocard-name">Nome da Promoção *</Label>
+              <Label htmlFor="cocard-name">Nome do Cartão *</Label>
               <Input
                 id="cocard-name"
                 value={coCardForm.name}
                 onChange={(e) => setCoCardForm({...coCardForm, name: e.target.value})}
-                placeholder="Ex: Promoção de Verão"
+                placeholder="Ex: Cartão Fidelidade"
               />
             </div>
             <div className="space-y-2">
@@ -1049,7 +909,7 @@ const Admin = () => {
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="cocard-active">Promoção Ativa</Label>
+              <Label htmlFor="cocard-active">Cartão Ativo</Label>
               <Switch
                 id="cocard-active"
                 checked={coCardForm.active}
@@ -1063,7 +923,7 @@ const Admin = () => {
             </Button>
             <Button onClick={handleSaveCoCard} disabled={savingCoCard} className="gradient-warm">
               {savingCoCard ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {coCardForm.id ? "Salvar" : "Criar Promoção"}
+              {coCardForm.id ? "Salvar" : "Criar Cartão"}
             </Button>
           </DialogFooter>
         </DialogContent>
