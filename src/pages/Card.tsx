@@ -11,6 +11,7 @@ interface CardData {
   reqstamp: number;
   completed: boolean;
   rescued: boolean;
+  expiredate: string | null;
 }
 
 interface ClientData {
@@ -62,6 +63,7 @@ const CardPage = () => {
           reqstamp: Number(card.reqstamp) || 10,
           completed: card.completed || false,
           rescued: card.rescued || false,
+          expiredate: card.expiredate || null,
         });
 
         // Busca o cliente pelo cardid
@@ -139,6 +141,19 @@ const CardPage = () => {
   const primaryColor = companyData?.primarycolour || "#f97316";
   const secondaryColor = companyData?.secundarycolour || "#ea580c";
   const companyLogo = companyData?.elogo;
+
+  // Calculate days remaining until expiration
+  const calculateDaysRemaining = () => {
+    if (!cardData.expiredate) return null;
+    const expireDate = new Date(cardData.expiredate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    expireDate.setHours(0, 0, 0, 0);
+    const diffTime = expireDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+  const daysRemaining = calculateDaysRemaining();
 
   const stamps = Array.from({ length: requiredStamps }, (_, i) => i < currentStamps);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
@@ -282,7 +297,7 @@ const CardPage = () => {
               background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`
             }}
           >
-            <div className="h-full min-h-[500px] flex flex-col items-center justify-center p-8 relative">
+            <div className="h-full flex flex-col items-center justify-between p-8 relative">
               {/* Decorative pattern */}
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-4 left-4 w-20 h-20 border-2 border-white rounded-full" />
@@ -291,7 +306,7 @@ const CardPage = () => {
               </div>
 
               {/* Company Logo or Name */}
-              <div className="relative z-10 text-center">
+              <div className="relative z-10 text-center flex-1 flex flex-col items-center justify-center">
                 {companyLogo ? (
                   <img 
                     src={companyLogo} 
@@ -310,25 +325,45 @@ const CardPage = () => {
                 <p className="text-white/80 text-sm">
                   Cartão Fidelidade
                 </p>
+
+                {/* Card Code */}
+                <div className="mt-6 bg-white/20 px-6 py-3 rounded-xl">
+                  <span className="font-mono text-xl font-bold text-white tracking-widest">
+                    {cardData.cardcode}
+                  </span>
+                </div>
+
+                {/* Flip Button */}
+                <Button
+                  onClick={() => setIsFlipped(false)}
+                  variant="secondary"
+                  size="sm"
+                  className="mt-6 gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Voltar
+                </Button>
               </div>
 
-              {/* Card Code */}
-              <div className="mt-8 bg-white/20 px-6 py-3 rounded-xl">
-                <span className="font-mono text-xl font-bold text-white tracking-widest">
-                  {cardData.cardcode}
-                </span>
-              </div>
-
-              {/* Flip Button */}
-              <Button
-                onClick={() => setIsFlipped(false)}
-                variant="secondary"
-                size="sm"
-                className="mt-8 gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Voltar
-              </Button>
+              {/* Expiration Info */}
+              {daysRemaining !== null && (
+                <div className="relative z-10 mt-4 text-center">
+                  <div className={`px-4 py-2 rounded-lg ${
+                    daysRemaining <= 0 
+                      ? 'bg-red-500/30' 
+                      : daysRemaining <= 7 
+                        ? 'bg-yellow-500/30' 
+                        : 'bg-white/20'
+                  }`}>
+                    <p className="text-white text-sm font-medium">
+                      {daysRemaining <= 0 
+                        ? "⚠️ Cartão expirado" 
+                        : `⏰ Faltam ${daysRemaining} dias para expirar o seu cartão`
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         </div>

@@ -52,6 +52,7 @@ export type Database = {
           created_at: string
           custamp: number | null
           events: string | null
+          expiredate: string | null
           id: number
           idclient: string | null
           idemp: string | null
@@ -66,6 +67,7 @@ export type Database = {
           created_at?: string
           custamp?: number | null
           events?: string | null
+          expiredate?: string | null
           id?: number
           idclient?: string | null
           idemp?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           created_at?: string
           custamp?: number | null
           events?: string | null
+          expiredate?: string | null
           id?: number
           idclient?: string | null
           idemp?: string | null

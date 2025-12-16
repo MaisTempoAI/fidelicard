@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { UtensilsCrossed, Loader2, ArrowLeft, Plus, CheckCircle, Clock, Gift } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { UtensilsCrossed, Loader2, ArrowLeft, Plus, CheckCircle, Clock, Gift, User } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getClientByPhone, 
@@ -45,6 +46,9 @@ const ClientCards = () => {
   const [cards, setCards] = useState<CardItem[]>([]);
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [clientCardId, setClientCardId] = useState<string | null>(null);
+  const [showNameForm, setShowNameForm] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [isSubmittingName, setIsSubmittingName] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,45 +72,80 @@ const ClientCards = () => {
           elogo: companyData.elogo,
         });
 
-        const requiredStamps = companyData.loyaltystamps ? Number(companyData.loyaltystamps) : 10;
-
-        // Busca cliente ou cria se não existir
-        let client = await getClientByPhone(phone, Number(companyId));
-        if (!client) {
-          client = await createClient(phone, Number(companyId));
-        }
-        setClientCardId(client.cardid);
-
-        // Busca todos os cartões
-        let clientCards = await getAllCardsByClient(client.cardid!);
+        // Busca cliente
+        const client = await getClientByPhone(phone, Number(companyId));
         
-        // Se não tem cartão, cria o primeiro
-        if (clientCards.length === 0) {
-          const newCard = await createCard(client.cardid!, Number(companyId), requiredStamps);
-          clientCards = [newCard];
+        // Se não existe, mostra formulário de nome
+        if (!client) {
+          setShowNameForm(true);
+          setIsLoading(false);
+          return;
         }
 
-        setCards(clientCards.map(c => ({
-          id: c.id,
-          cardcode: c.cardcode,
-          custamp: Number(c.custamp) || 0,
-          reqstamp: Number(c.reqstamp) || 10,
-          completed: c.completed || false,
-          completedat: c.completedat,
-          created_at: c.created_at,
-          rescued: c.rescued || false,
-        })));
+        // Cliente existe, continua o fluxo normal
+        await loadClientCards(client.cardid!, companyData);
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Erro ao carregar dados");
         navigate("/");
-      } finally {
-        setIsLoading(false);
       }
     };
 
     fetchData();
   }, [companyId, phone, navigate]);
+
+  const loadClientCards = async (cardId: string, companyData: any) => {
+    try {
+      const requiredStamps = companyData.loyaltystamps ? Number(companyData.loyaltystamps) : 10;
+      setClientCardId(cardId);
+
+      // Busca todos os cartões
+      let clientCards = await getAllCardsByClient(cardId);
+      
+      // Se não tem cartão, cria o primeiro
+      if (clientCards.length === 0) {
+        const newCard = await createCard(cardId, Number(companyId), requiredStamps);
+        clientCards = [newCard];
+      }
+
+      setCards(clientCards.map(c => ({
+        id: c.id,
+        cardcode: c.cardcode,
+        custamp: Number(c.custamp) || 0,
+        reqstamp: Number(c.reqstamp) || 10,
+        completed: c.completed || false,
+        completedat: c.completedat,
+        created_at: c.created_at,
+        rescued: c.rescued || false,
+      })));
+    } catch (error) {
+      console.error("Error loading cards:", error);
+      toast.error("Erro ao carregar cartões");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNameSubmit = async () => {
+    if (!clientName.trim()) {
+      toast.error("Por favor, digite seu nome");
+      return;
+    }
+
+    setIsSubmittingName(true);
+    try {
+      const newClient = await createClient(phone, Number(companyId), clientName.trim());
+      setShowNameForm(false);
+      
+      const companyData = await getCompany(Number(companyId));
+      await loadClientCards(newClient.cardid!, companyData);
+    } catch (error) {
+      console.error("Error creating client:", error);
+      toast.error("Erro ao criar cadastro");
+    } finally {
+      setIsSubmittingName(false);
+    }
+  };
 
   const handleCreateNewCard = async () => {
     if (!clientCardId || !company) return;
@@ -134,6 +173,81 @@ const ClientCards = () => {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
         <p className="text-muted-foreground mt-4">Carregando seus cartões...</p>
+      </div>
+    );
+  }
+
+  // Formulário de nome para novos clientes
+  if (showNameForm) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        {/* Decorative background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
+        </div>
+
+        {/* Header */}
+        <div className="text-center mb-8 relative z-10">
+          <div className="mx-auto w-20 h-20 rounded-full gradient-warm flex items-center justify-center mb-4 shadow-lg">
+            {company?.elogo ? (
+              <img src={company.elogo} alt={company.name || "Logo"} className="w-12 h-12 rounded-full object-cover" />
+            ) : (
+              <UtensilsCrossed className="w-10 h-10 text-primary-foreground" />
+            )}
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">{company?.name}</h1>
+          <p className="text-muted-foreground text-sm mt-1">Cartão Fidelidade</p>
+        </div>
+
+        {/* Name Form Card */}
+        <Card className="w-full max-w-sm relative z-10 border-primary/20 shadow-xl">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+              <User className="w-7 h-7 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground">
+              Como gostaria de ser chamado?
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Digite seu nome para criar seu cartão fidelidade
+            </p>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-4">
+              <Input
+                type="text"
+                placeholder="Seu nome"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="h-12 text-lg text-center"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleNameSubmit();
+                  }
+                }}
+              />
+              <Button
+                onClick={handleNameSubmit}
+                disabled={isSubmittingName || !clientName.trim()}
+                className="w-full h-12 text-lg gradient-warm hover:opacity-90 transition-opacity"
+              >
+                {isSubmittingName ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  "Continuar"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <p className="text-xs text-muted-foreground mt-8 text-center relative z-10">
+          Cartão Fidelidade Digital • {company?.name}
+        </p>
       </div>
     );
   }
