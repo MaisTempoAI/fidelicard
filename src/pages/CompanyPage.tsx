@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { UtensilsCrossed, Loader2, ArrowLeft, Settings } from "lucide-react";
 import { toast } from "sonner";
-import { getCompany } from "@/hooks/useLoyalty";
+import { getCompanyByIdOrSlug } from "@/hooks/useLoyalty";
 
 interface CompanyData {
   id: number;
@@ -31,7 +31,7 @@ const CompanyPage = () => {
       }
 
       try {
-        const data = await getCompany(Number(companyId));
+        const data = await getCompanyByIdOrSlug(companyId);
         if (!data) {
           toast.error("Empresa não encontrada");
           navigate("/");
