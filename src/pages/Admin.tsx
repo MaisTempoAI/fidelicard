@@ -453,10 +453,10 @@ const Admin = () => {
             <CardContent className="pt-4 pb-4">
               <Button
                 onClick={handleScanQR}
-                className="w-full h-full gradient-warm hover:opacity-90"
+                className="w-full h-16 text-lg font-bold gradient-warm hover:opacity-90"
               >
-                <QrCode className="w-5 h-5 mr-2" />
-                Escanear QR
+                <QrCode className="w-6 h-6 mr-2" />
+                QR CODE
               </Button>
             </CardContent>
           </Card>
