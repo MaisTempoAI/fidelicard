@@ -12,6 +12,7 @@ export interface Company {
   loyaltytext: string | null;
   exchangeproducts: string | null;
   primarycolour: string | null;
+  urlsite: string | null;
 }
 
 export interface ClientWithCard {
@@ -30,7 +31,7 @@ export interface ClientWithCard {
 export const authenticateCompany = async (login: string, password: string) => {
   const { data, error } = await supabase
     .from("CRF-Companies")
-    .select("id, name, email, user, elogo, loyaltystamps, phone, address, loyaltytext, exchangeproducts, primarycolour")
+    .select("id, name, email, user, elogo, loyaltystamps, phone, address, loyaltytext, exchangeproducts, primarycolour, urlsite")
     .or(`email.eq.${login},user.eq.${login}`)
     .eq("password", password)
     .single();
@@ -46,7 +47,7 @@ export const authenticateCompany = async (login: string, password: string) => {
 export const getCompanyById = async (companyId: number) => {
   const { data, error } = await supabase
     .from("CRF-Companies")
-    .select("id, name, email, user, elogo, loyaltystamps, phone, address, loyaltytext, exchangeproducts, primarycolour")
+    .select("id, name, email, user, elogo, loyaltystamps, phone, address, loyaltytext, exchangeproducts, primarycolour, urlsite")
     .eq("id", companyId)
     .single();
 
@@ -65,6 +66,7 @@ export const updateCompanyData = async (
     phone?: string;
     email?: string;
     address?: string;
+    urlsite?: string;
   }
 ) => {
   const { error } = await supabase
