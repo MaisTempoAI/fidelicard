@@ -128,6 +128,51 @@ export type Database = {
         }
         Relationships: []
       }
+      "CRF-CoCards": {
+        Row: {
+          active: boolean | null
+          card: string | null
+          company: string | null
+          created_at: string
+          days: number | null
+          id: number
+          name: string | null
+          pricolour: string | null
+          prod: string | null
+          seccolour: string | null
+          stamps: number | null
+          text: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          card?: string | null
+          company?: string | null
+          created_at?: string
+          days?: number | null
+          id?: number
+          name?: string | null
+          pricolour?: string | null
+          prod?: string | null
+          seccolour?: string | null
+          stamps?: number | null
+          text?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          card?: string | null
+          company?: string | null
+          created_at?: string
+          days?: number | null
+          id?: number
+          name?: string | null
+          pricolour?: string | null
+          prod?: string | null
+          seccolour?: string | null
+          stamps?: number | null
+          text?: string | null
+        }
+        Relationships: []
+      }
       "CRF-Companies": {
         Row: {
           active: boolean | null
@@ -188,42 +233,6 @@ export type Database = {
           secundarycolour?: string | null
           slug?: string | null
           user?: string | null
-        }
-        Relationships: []
-      }
-      "CRF-Events": {
-        Row: {
-          added_by: string | null
-          card_id: string | null
-          created_at: string
-          delta: number | null
-          emp_id: string | null
-          id: number
-          obs: string | null
-          source: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          added_by?: string | null
-          card_id?: string | null
-          created_at?: string
-          delta?: number | null
-          emp_id?: string | null
-          id?: number
-          obs?: string | null
-          source?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          added_by?: string | null
-          card_id?: string | null
-          created_at?: string
-          delta?: number | null
-          emp_id?: string | null
-          id?: number
-          obs?: string | null
-          source?: string | null
-          user_agent?: string | null
         }
         Relationships: []
       }

@@ -104,6 +104,42 @@ export const createCard = async (clientCardId: string, companyId: number, requir
   return data;
 };
 
+// Cria cartão baseado em template CoCard
+export const createCardFromCoCard = async (
+  clientCardId: string,
+  coCard: {
+    card: string | null;
+    stamps: number | null;
+    days: number | null;
+  }
+) => {
+  const cardCode = generateCardCode();
+  
+  // Calcula data de expiração baseado nos dias do CoCard
+  let expireDate: string | null = null;
+  if (coCard.days && coCard.days > 0) {
+    const expire = new Date();
+    expire.setDate(expire.getDate() + coCard.days);
+    expireDate = expire.toISOString().split('T')[0]; // YYYY-MM-DD format
+  }
+  
+  const { data, error } = await supabase
+    .from("CRF-Cards")
+    .insert({
+      idclient: clientCardId,
+      cardcode: cardCode,
+      custamp: 0,
+      reqstamp: coCard.stamps || 10,
+      completed: false,
+      expiredate: expireDate,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
 // Busca TODOS os cartões de um cliente
 export const getAllCardsByClient = async (clientCardId: string) => {
   const { data, error } = await supabase

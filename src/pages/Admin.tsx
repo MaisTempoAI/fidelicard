@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Palette, Gift } from "lucide-react";
+import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Palette, Gift, Megaphone, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getCompanyClientsWithCards, 
@@ -27,6 +28,13 @@ import {
   ClientWithCard,
   Company
 } from "@/hooks/useAdmin";
+import {
+  getCompanyCoCards,
+  createCoCard,
+  updateCoCard,
+  deleteCoCard,
+  CoCard
+} from "@/hooks/useCoCards";
 
 interface EditingClient {
   cardId: number;
@@ -50,6 +58,18 @@ interface CardSettingsForm {
   exchangeproducts: string;
   primarycolour: string;
   elogo: string;
+}
+
+interface CoCardForm {
+  id?: number;
+  name: string;
+  text: string;
+  prod: string;
+  stamps: number;
+  days: number;
+  pricolour: string;
+  seccolour: string;
+  active: boolean;
 }
 
 const Admin = () => {
@@ -79,6 +99,24 @@ const Admin = () => {
     elogo: "",
   });
   const [savingCompany, setSavingCompany] = useState(false);
+
+  // Promotions (CoCards) management
+  const [showPromotionsModal, setShowPromotionsModal] = useState(false);
+  const [showCoCardForm, setShowCoCardForm] = useState(false);
+  const [coCards, setCoCards] = useState<CoCard[]>([]);
+  const [loadingCoCards, setLoadingCoCards] = useState(false);
+  const [savingCoCard, setSavingCoCard] = useState(false);
+  const [deletingCoCard, setDeletingCoCard] = useState<number | null>(null);
+  const [coCardForm, setCoCardForm] = useState<CoCardForm>({
+    name: "",
+    text: "",
+    prod: "",
+    stamps: 10,
+    days: 365,
+    pricolour: "#FF6B35",
+    seccolour: "#F7931E",
+    active: true,
+  });
 
   const companyId = localStorage.getItem("admin_company_id");
   const companyName = localStorage.getItem("admin_company_name") || "Minha Empresa";
@@ -135,6 +173,116 @@ const Admin = () => {
   const handleOpenCardSettingsModal = async () => {
     await loadCompanyData();
     setShowCardSettingsModal(true);
+  };
+
+  // Promotions (CoCards) handlers
+  const loadCoCards = async () => {
+    if (!companyId) return;
+    setLoadingCoCards(true);
+    const { coCards: data, error } = await getCompanyCoCards(parseInt(companyId));
+    if (error) {
+      toast.error("Erro ao carregar promoções");
+    } else {
+      setCoCards(data);
+    }
+    setLoadingCoCards(false);
+  };
+
+  const handleOpenPromotionsModal = async () => {
+    await loadCoCards();
+    setShowPromotionsModal(true);
+  };
+
+  const handleOpenCoCardForm = (coCard?: CoCard) => {
+    if (coCard) {
+      setCoCardForm({
+        id: coCard.id,
+        name: coCard.name || "",
+        text: coCard.text || "",
+        prod: coCard.prod || "",
+        stamps: coCard.stamps || 10,
+        days: coCard.days || 365,
+        pricolour: coCard.pricolour || "#FF6B35",
+        seccolour: coCard.seccolour || "#F7931E",
+        active: coCard.active ?? true,
+      });
+    } else {
+      setCoCardForm({
+        name: "",
+        text: "",
+        prod: "",
+        stamps: 10,
+        days: 365,
+        pricolour: "#FF6B35",
+        seccolour: "#F7931E",
+        active: true,
+      });
+    }
+    setShowCoCardForm(true);
+  };
+
+  const handleSaveCoCard = async () => {
+    if (!companyId) return;
+    if (!coCardForm.name.trim() || !coCardForm.text.trim()) {
+      toast.error("Nome e texto são obrigatórios");
+      return;
+    }
+
+    setSavingCoCard(true);
+    try {
+      if (coCardForm.id) {
+        // Update existing
+        const { success, error } = await updateCoCard(coCardForm.id, {
+          name: coCardForm.name,
+          text: coCardForm.text,
+          prod: coCardForm.prod,
+          stamps: coCardForm.stamps,
+          days: coCardForm.days,
+          pricolour: coCardForm.pricolour,
+          seccolour: coCardForm.seccolour,
+          active: coCardForm.active,
+        });
+        if (success) {
+          toast.success("Promoção atualizada!");
+        } else {
+          toast.error(error || "Erro ao atualizar");
+        }
+      } else {
+        // Create new
+        const { coCard, error } = await createCoCard(parseInt(companyId), {
+          name: coCardForm.name,
+          text: coCardForm.text,
+          prod: coCardForm.prod,
+          stamps: coCardForm.stamps,
+          days: coCardForm.days,
+          pricolour: coCardForm.pricolour,
+          seccolour: coCardForm.seccolour,
+          active: coCardForm.active,
+        });
+        if (coCard) {
+          toast.success("Promoção criada!");
+        } else {
+          toast.error(error || "Erro ao criar");
+        }
+      }
+      await loadCoCards();
+      setShowCoCardForm(false);
+    } catch (err) {
+      toast.error("Erro ao salvar promoção");
+    }
+    setSavingCoCard(false);
+  };
+
+  const handleDeleteCoCard = async (coCardId: number) => {
+    setDeletingCoCard(coCardId);
+    const { success, error } = await deleteCoCard(coCardId);
+    if (success) {
+      toast.success("Promoção excluída!");
+      await loadCoCards();
+    } else {
+      toast.error(error || "Erro ao excluir");
+    }
+    setDeletingCoCard(null);
   };
 
   const handleSaveCompanyData = async () => {
@@ -306,6 +454,14 @@ const Admin = () => {
           >
             <Palette className="w-4 h-4 mr-2" />
             Editar Seu Cartão
+          </Button>
+          <Button
+            variant="outline"
+            className="border-primary/30 hover:bg-primary/10"
+            onClick={handleOpenPromotionsModal}
+          >
+            <Megaphone className="w-4 h-4 mr-2" />
+            Gerenciar Promoções
           </Button>
         </div>
 
@@ -701,6 +857,213 @@ const Admin = () => {
             <Button onClick={handleSaveCardSettings} disabled={savingCompany} className="gradient-warm">
               {savingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Promotions (CoCards) Modal */}
+      <Dialog open={showPromotionsModal} onOpenChange={setShowPromotionsModal}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Megaphone className="w-5 h-5" />
+              Gerenciar Promoções
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Button
+              onClick={() => handleOpenCoCardForm()}
+              className="w-full gradient-warm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Promoção
+            </Button>
+
+            {loadingCoCards ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+                <p className="text-sm text-muted-foreground mt-2">Carregando promoções...</p>
+              </div>
+            ) : coCards.length === 0 ? (
+              <div className="text-center py-8">
+                <Gift className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">Nenhuma promoção cadastrada</p>
+                <p className="text-xs text-muted-foreground">Crie sua primeira promoção para começar</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {coCards.map((coCard) => (
+                  <Card key={coCard.id} className="border-border/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-foreground truncate">{coCard.name}</span>
+                            {coCard.active ? (
+                              <Badge className="bg-green-500/20 text-green-700 text-xs">Ativa</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">Inativa</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{coCard.text}</p>
+                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            <span className="bg-muted px-2 py-0.5 rounded">{coCard.stamps} carimbos</span>
+                            <span className="bg-muted px-2 py-0.5 rounded">{coCard.days} dias</span>
+                            {coCard.prod && <span className="bg-muted px-2 py-0.5 rounded">{coCard.prod}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <div
+                            className="w-6 h-6 rounded-full border-2 border-border"
+                            style={{ background: `linear-gradient(135deg, ${coCard.pricolour || '#FF6B35'}, ${coCard.seccolour || '#F7931E'})` }}
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => handleOpenCoCardForm(coCard)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteCoCard(coCard.id)}
+                            disabled={deletingCoCard === coCard.id}
+                          >
+                            {deletingCoCard === coCard.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* CoCard Form Modal */}
+      <Dialog open={showCoCardForm} onOpenChange={setShowCoCardForm}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gift className="w-5 h-5" />
+              {coCardForm.id ? "Editar Promoção" : "Nova Promoção"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="cocard-name">Nome da Promoção *</Label>
+              <Input
+                id="cocard-name"
+                value={coCardForm.name}
+                onChange={(e) => setCoCardForm({...coCardForm, name: e.target.value})}
+                placeholder="Ex: Promoção de Verão"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cocard-text">Texto do Cartão *</Label>
+              <Textarea
+                id="cocard-text"
+                value={coCardForm.text}
+                onChange={(e) => setCoCardForm({...coCardForm, text: e.target.value})}
+                placeholder="Ex: Junte 10 carimbos e ganhe uma marmita grátis!"
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cocard-prod">Produto de Troca</Label>
+              <Input
+                id="cocard-prod"
+                value={coCardForm.prod}
+                onChange={(e) => setCoCardForm({...coCardForm, prod: e.target.value})}
+                placeholder="Ex: Marmita, Sorvete, Refrigerante"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cocard-stamps">Carimbos Necessários</Label>
+                <Input
+                  id="cocard-stamps"
+                  type="number"
+                  value={coCardForm.stamps}
+                  onChange={(e) => setCoCardForm({...coCardForm, stamps: parseInt(e.target.value) || 10})}
+                  min={1}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cocard-days">Validade (dias)</Label>
+                <Input
+                  id="cocard-days"
+                  type="number"
+                  value={coCardForm.days}
+                  onChange={(e) => setCoCardForm({...coCardForm, days: parseInt(e.target.value) || 365})}
+                  min={1}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Cores do Cartão</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex gap-2 items-center">
+                  <Input
+                    value={coCardForm.pricolour}
+                    onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
+                    placeholder="Primária"
+                    className="flex-1"
+                  />
+                  <input
+                    type="color"
+                    value={coCardForm.pricolour || "#FF6B35"}
+                    onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
+                    className="w-10 h-10 rounded border border-input cursor-pointer"
+                  />
+                </div>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    value={coCardForm.seccolour}
+                    onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
+                    placeholder="Secundária"
+                    className="flex-1"
+                  />
+                  <input
+                    type="color"
+                    value={coCardForm.seccolour || "#F7931E"}
+                    onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
+                    className="w-10 h-10 rounded border border-input cursor-pointer"
+                  />
+                </div>
+              </div>
+              {/* Preview gradient */}
+              <div
+                className="h-12 rounded-lg mt-2"
+                style={{ background: `linear-gradient(135deg, ${coCardForm.pricolour || '#FF6B35'}, ${coCardForm.seccolour || '#F7931E'})` }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="cocard-active">Promoção Ativa</Label>
+              <Switch
+                id="cocard-active"
+                checked={coCardForm.active}
+                onCheckedChange={(checked) => setCoCardForm({...coCardForm, active: checked})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCoCardForm(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveCoCard} disabled={savingCoCard} className="gradient-warm">
+              {savingCoCard ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {coCardForm.id ? "Salvar" : "Criar Promoção"}
             </Button>
           </DialogFooter>
         </DialogContent>
