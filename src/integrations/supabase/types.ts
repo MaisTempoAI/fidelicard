@@ -192,6 +192,7 @@ export type Database = {
           qrcodeurl: string | null
           secundarycolour: string | null
           slug: string | null
+          urlsite: string | null
           user: string | null
         }
         Insert: {
@@ -212,6 +213,7 @@ export type Database = {
           qrcodeurl?: string | null
           secundarycolour?: string | null
           slug?: string | null
+          urlsite?: string | null
           user?: string | null
         }
         Update: {
@@ -232,6 +234,7 @@ export type Database = {
           qrcodeurl?: string | null
           secundarycolour?: string | null
           slug?: string | null
+          urlsite?: string | null
           user?: string | null
         }
         Relationships: []

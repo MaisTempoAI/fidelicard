@@ -49,6 +49,7 @@ interface CompanyDataForm {
   phone: string;
   email: string;
   address: string;
+  urlsite: string;
 }
 
 
@@ -81,6 +82,7 @@ const Admin = () => {
     phone: "",
     email: "",
     address: "",
+    urlsite: "",
   });
   const [savingCompany, setSavingCompany] = useState(false);
 
@@ -138,6 +140,7 @@ const Admin = () => {
         phone: company.phone || "",
         email: company.email || "",
         address: company.address || "",
+        urlsite: company.urlsite || "",
       });
     }
   };
@@ -707,6 +710,25 @@ const Admin = () => {
                 onChange={(e) => setCompanyDataForm({...companyDataForm, address: e.target.value})}
                 placeholder="Endereço"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company-urlsite">Link Personalizado</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">/empresa/</span>
+                <Input
+                  id="company-urlsite"
+                  value={companyDataForm.urlsite}
+                  onChange={(e) => setCompanyDataForm({
+                    ...companyDataForm, 
+                    urlsite: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '')
+                  })}
+                  placeholder="BARBER_RODRI"
+                  className="uppercase"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                URL final: {window.location.origin}/empresa/{companyDataForm.urlsite || '[seu-link]'}
+              </p>
             </div>
           </div>
           <DialogFooter>
