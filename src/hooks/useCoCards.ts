@@ -15,30 +15,19 @@ export interface CoCard {
   created_at: string;
 }
 
+// Convert company ID to a valid UUID format
+const companyIdToUuid = (companyId: number): string => {
+  return `00000000-0000-0000-0000-${companyId.toString().padStart(12, '0')}`;
+};
+
 // Get all CoCards for a company
 export const getCompanyCoCards = async (companyId: number) => {
-  // First get company uuid
-  const { data: company } = await supabase
-    .from("CRF-Companies")
-    .select("extcode")
-    .eq("id", companyId)
-    .single();
-
-  if (!company?.extcode) {
-    // If no extcode, try to create a link using company id as string
-    const { data, error } = await supabase
-      .from("CRF-CoCards")
-      .select("*")
-      .eq("company", companyId.toString())
-      .order("created_at", { ascending: false });
-
-    return { coCards: data as CoCard[] || [], error: error?.message };
-  }
+  const companyUuid = companyIdToUuid(companyId);
 
   const { data, error } = await supabase
     .from("CRF-CoCards")
     .select("*")
-    .eq("company", company.extcode)
+    .eq("company", companyUuid)
     .order("created_at", { ascending: false });
 
   return { coCards: data as CoCard[] || [], error: error?.message };
@@ -46,18 +35,12 @@ export const getCompanyCoCards = async (companyId: number) => {
 
 // Get only active CoCards for a company
 export const getActiveCoCards = async (companyId: number) => {
-  const { data: company } = await supabase
-    .from("CRF-Companies")
-    .select("extcode")
-    .eq("id", companyId)
-    .single();
-
-  const companyRef = company?.extcode || companyId.toString();
+  const companyUuid = companyIdToUuid(companyId);
 
   const { data, error } = await supabase
     .from("CRF-CoCards")
     .select("*")
-    .eq("company", companyRef)
+    .eq("company", companyUuid)
     .eq("active", true)
     .order("created_at", { ascending: false });
 
@@ -89,19 +72,12 @@ export const createCoCard = async (
     active?: boolean;
   }
 ) => {
-  // Get company extcode or use id as reference
-  const { data: company } = await supabase
-    .from("CRF-Companies")
-    .select("extcode")
-    .eq("id", companyId)
-    .single();
-
-  const companyRef = company?.extcode || companyId.toString();
+  const companyUuid = companyIdToUuid(companyId);
 
   const { data: newCoCard, error } = await supabase
     .from("CRF-CoCards")
     .insert({
-      company: companyRef,
+      company: companyUuid,
       name: data.name,
       text: data.text,
       prod: data.prod || null,
