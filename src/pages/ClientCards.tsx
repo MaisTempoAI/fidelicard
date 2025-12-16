@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { UtensilsCrossed, Loader2, ArrowLeft, Plus, CheckCircle, Clock, Gift, User } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Plus, CheckCircle, Clock, Gift, User, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getClientByPhone, 
@@ -11,8 +11,10 @@ import {
   getAllCardsByClient,
   createNewCardForClient,
   createClient,
-  createCard
+  createCard,
+  createCardFromCoCard
 } from "@/hooks/useLoyalty";
+import { getActiveCoCards, CoCard } from "@/hooks/useCoCards";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -49,6 +51,12 @@ const ClientCards = () => {
   const [showNameForm, setShowNameForm] = useState(false);
   const [clientName, setClientName] = useState("");
   const [isSubmittingName, setIsSubmittingName] = useState(false);
+  
+  // Promotion selection
+  const [showPromotionSelection, setShowPromotionSelection] = useState(false);
+  const [activePromotions, setActivePromotions] = useState<CoCard[]>([]);
+  const [loadingPromotions, setLoadingPromotions] = useState(false);
+  const [creatingFromPromotion, setCreatingFromPromotion] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,16 +104,15 @@ const ClientCards = () => {
 
   const loadClientCards = async (cardId: string, companyData: any) => {
     try {
-      const requiredStamps = companyData.loyaltystamps ? Number(companyData.loyaltystamps) : 10;
       setClientCardId(cardId);
 
       // Busca todos os cartões
       let clientCards = await getAllCardsByClient(cardId);
       
-      // Se não tem cartão, cria o primeiro
+      // Se não tem cartão, verifica promoções ativas
       if (clientCards.length === 0) {
-        const newCard = await createCard(cardId, Number(companyId), requiredStamps);
-        clientCards = [newCard];
+        await checkAndShowPromotions(cardId, companyData);
+        return;
       }
 
       setCards(clientCards.map(c => ({
@@ -126,6 +133,66 @@ const ClientCards = () => {
     }
   };
 
+  const checkAndShowPromotions = async (cardId: string, companyData: any) => {
+    setLoadingPromotions(true);
+    try {
+      const { coCards, error } = await getActiveCoCards(Number(companyId));
+      
+      if (error || coCards.length === 0) {
+        // Sem promoções ativas, cria cartão com configurações padrão da empresa
+        const requiredStamps = companyData.loyaltystamps ? Number(companyData.loyaltystamps) : 10;
+        const newCard = await createCard(cardId, Number(companyId), requiredStamps);
+        setCards([{
+          id: newCard.id,
+          cardcode: newCard.cardcode,
+          custamp: 0,
+          reqstamp: Number(newCard.reqstamp) || 10,
+          completed: false,
+          completedat: null,
+          created_at: newCard.created_at,
+          rescued: false,
+        }]);
+        navigate(`/card/${newCard.cardcode}`);
+        return;
+      }
+
+      if (coCards.length === 1) {
+        // Apenas uma promoção, cria automaticamente
+        const coCard = coCards[0];
+        const newCard = await createCardFromCoCard(cardId, coCard);
+        toast.success(`Cartão "${coCard.name}" criado!`);
+        navigate(`/card/${newCard.cardcode}`);
+        return;
+      }
+
+      // Múltiplas promoções, mostra seleção
+      setActivePromotions(coCards);
+      setShowPromotionSelection(true);
+    } catch (error) {
+      console.error("Error checking promotions:", error);
+      toast.error("Erro ao verificar promoções");
+    } finally {
+      setLoadingPromotions(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectPromotion = async (coCard: CoCard) => {
+    if (!clientCardId) return;
+    
+    setCreatingFromPromotion(coCard.id);
+    try {
+      const newCard = await createCardFromCoCard(clientCardId, coCard);
+      toast.success(`Cartão "${coCard.name}" criado!`);
+      navigate(`/card/${newCard.cardcode}`);
+    } catch (error) {
+      console.error("Error creating card from promotion:", error);
+      toast.error("Erro ao criar cartão");
+    } finally {
+      setCreatingFromPromotion(null);
+    }
+  };
+
   const handleNameSubmit = async () => {
     if (!clientName.trim()) {
       toast.error("Por favor, digite seu nome");
@@ -136,9 +203,10 @@ const ClientCards = () => {
     try {
       const newClient = await createClient(phone, Number(companyId), clientName.trim());
       setShowNameForm(false);
+      setClientCardId(newClient.cardid!);
       
       const companyData = await getCompany(Number(companyId));
-      await loadClientCards(newClient.cardid!, companyData);
+      await checkAndShowPromotions(newClient.cardid!, companyData);
     } catch (error) {
       console.error("Error creating client:", error);
       toast.error("Erro ao criar cadastro");
@@ -150,11 +218,31 @@ const ClientCards = () => {
   const handleCreateNewCard = async () => {
     if (!clientCardId || !company) return;
     
+    // Verifica se há promoções ativas
     setIsCreating(true);
     try {
-      const newCard = await createNewCardForClient(clientCardId, company.id);
-      toast.success("Novo cartão criado com sucesso!");
-      navigate(`/card/${newCard.cardcode}`);
+      const { coCards, error } = await getActiveCoCards(company.id);
+      
+      if (error || coCards.length === 0) {
+        // Sem promoções, cria com configurações da empresa
+        const newCard = await createNewCardForClient(clientCardId, company.id);
+        toast.success("Novo cartão criado com sucesso!");
+        navigate(`/card/${newCard.cardcode}`);
+        return;
+      }
+
+      if (coCards.length === 1) {
+        // Uma promoção, cria automaticamente
+        const coCard = coCards[0];
+        const newCard = await createCardFromCoCard(clientCardId, coCard);
+        toast.success(`Cartão "${coCard.name}" criado!`);
+        navigate(`/card/${newCard.cardcode}`);
+        return;
+      }
+
+      // Múltiplas promoções, mostra seleção
+      setActivePromotions(coCards);
+      setShowPromotionSelection(true);
     } catch (error) {
       console.error("Error creating card:", error);
       toast.error("Erro ao criar novo cartão");
@@ -244,6 +332,103 @@ const ClientCards = () => {
             </div>
           </CardContent>
         </Card>
+
+        <p className="text-xs text-muted-foreground mt-8 text-center relative z-10">
+          Cartão Fidelidade Digital • {company?.name}
+        </p>
+      </div>
+    );
+  }
+
+  // Tela de seleção de promoção
+  if (showPromotionSelection) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        {/* Decorative background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
+        </div>
+
+        {/* Header */}
+        <div className="text-center mb-8 relative z-10">
+          <div className="mx-auto w-20 h-20 rounded-full gradient-warm flex items-center justify-center mb-4 shadow-lg">
+            {company?.elogo ? (
+              <img src={company.elogo} alt={company.name || "Logo"} className="w-12 h-12 rounded-full object-cover" />
+            ) : (
+              <UtensilsCrossed className="w-10 h-10 text-primary-foreground" />
+            )}
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">{company?.name}</h1>
+          <p className="text-muted-foreground text-sm mt-1">Escolha sua Promoção</p>
+        </div>
+
+        {/* Promotion Cards */}
+        <div className="w-full max-w-md space-y-4 relative z-10">
+          {loadingPromotions ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground mt-2">Carregando promoções...</p>
+            </div>
+          ) : (
+            activePromotions.map((promo) => (
+              <Card 
+                key={promo.id}
+                className="border-primary/20 shadow-lg hover:shadow-xl transition-all cursor-pointer overflow-hidden"
+                onClick={() => handleSelectPromotion(promo)}
+              >
+                {/* Gradient Header */}
+                <div 
+                  className="h-3"
+                  style={{ background: `linear-gradient(90deg, ${promo.pricolour || '#FF6B35'}, ${promo.seccolour || '#F7931E'})` }}
+                />
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: `linear-gradient(135deg, ${promo.pricolour || '#FF6B35'}, ${promo.seccolour || '#F7931E'})` }}
+                    >
+                      <Megaphone className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg text-foreground mb-1">{promo.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{promo.text}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                          {promo.stamps} carimbos
+                        </span>
+                        <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                          {promo.days} dias de validade
+                        </span>
+                        {promo.prod && (
+                          <span className="text-xs bg-green-500/10 text-green-700 px-2 py-1 rounded-full">
+                            {promo.prod}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {creatingFromPromotion === promo.id ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />
+                    ) : (
+                      <Gift className="w-5 h-5 text-primary shrink-0" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+
+          {/* Back button */}
+          <Button
+            variant="ghost"
+            className="w-full mt-4"
+            onClick={() => {
+              setShowPromotionSelection(false);
+              navigate(`/empresa/${companyId}`);
+            }}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
+        </div>
 
         <p className="text-xs text-muted-foreground mt-8 text-center relative z-10">
           Cartão Fidelidade Digital • {company?.name}
