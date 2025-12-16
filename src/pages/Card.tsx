@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
+import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
 
 interface CardData {
   cardcode: string;
@@ -12,6 +13,7 @@ interface CardData {
   completed: boolean;
   rescued: boolean;
   expiredate: string | null;
+  idemp: string | null;
 }
 
 interface ClientData {
@@ -37,6 +39,7 @@ const CardPage = () => {
   const [cardData, setCardData] = useState<CardData | null>(null);
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const [coCardData, setCoCardData] = useState<CoCard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -64,7 +67,16 @@ const CardPage = () => {
           completed: card.completed || false,
           rescued: card.rescued || false,
           expiredate: card.expiredate || null,
+          idemp: card.idemp || null,
         });
+
+        // Busca o CoCard (template da promoção) se existir referência
+        if (card.idemp) {
+          const { coCard } = await getCoCardByUuid(card.idemp);
+          if (coCard) {
+            setCoCardData(coCard);
+          }
+        }
 
         // Busca o cliente pelo cardid
         if (card.idclient) {
@@ -135,11 +147,12 @@ const CardPage = () => {
   const currentStamps = cardData.custamp;
   const requiredStamps = cardData.reqstamp;
   const companyName = companyData?.name || "Meu Restaurante";
-  const loyaltyText = companyData?.loyaltytext || `Junte ${requiredStamps} carimbos e ganhe um almoço gratuito!`;
-  const exchangeProducts = companyData?.exchangeproducts;
+  // Usa texto/cores do CoCard com fallback para empresa
+  const loyaltyText = coCardData?.text || companyData?.loyaltytext || `Junte ${requiredStamps} carimbos e ganhe um almoço gratuito!`;
+  const exchangeProducts = coCardData?.prod || companyData?.exchangeproducts;
   const remainingStamps = requiredStamps - currentStamps;
-  const primaryColor = companyData?.primarycolour || "#f97316";
-  const secondaryColor = companyData?.secundarycolour || "#ea580c";
+  const primaryColor = coCardData?.pricolour || companyData?.primarycolour || "#f97316";
+  const secondaryColor = coCardData?.seccolour || companyData?.secundarycolour || "#ea580c";
   const companyLogo = companyData?.elogo;
 
   // Calculate days remaining until expiration

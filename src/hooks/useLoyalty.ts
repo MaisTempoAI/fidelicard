@@ -132,6 +132,7 @@ export const createCardFromCoCard = async (
       reqstamp: coCard.stamps || 10,
       completed: false,
       expiredate: expireDate,
+      idemp: coCard.card, // Referência ao CoCard (template da promoção)
     })
     .select()
     .single();
