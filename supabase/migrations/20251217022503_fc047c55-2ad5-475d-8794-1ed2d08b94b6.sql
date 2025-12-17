@@ -1,0 +1,1 @@
+UPDATE "CRF-Cards" SET idemp = 'd846a230-b85d-495e-bf5a-a1f10be92fbb' WHERE cardcode = '15DQ22';
