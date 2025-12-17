@@ -11,6 +11,7 @@ export interface CoCard {
   days: number | null;
   pricolour: string | null;
   seccolour: string | null;
+  icon: string | null;
   active: boolean | null;
   created_at: string;
 }
@@ -69,6 +70,7 @@ export const createCoCard = async (
     days: number;
     pricolour?: string;
     seccolour?: string;
+    icon?: string;
     active?: boolean;
   }
 ) => {
@@ -85,6 +87,7 @@ export const createCoCard = async (
       days: data.days,
       pricolour: data.pricolour || null,
       seccolour: data.seccolour || null,
+      icon: data.icon || 'armchair',
       active: data.active ?? true,
     })
     .select()
@@ -108,6 +111,7 @@ export const updateCoCard = async (
     days?: number;
     pricolour?: string;
     seccolour?: string;
+    icon?: string;
     active?: boolean;
   }
 ) => {
