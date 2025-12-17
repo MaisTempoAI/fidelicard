@@ -264,15 +264,34 @@ const CardPage = () => {
             className="flex flex-col items-center justify-center py-1.5 border-r"
             style={{ borderColor: `${fontColor}20` }}
           >
-            <span 
-              className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] mb-0.5"
-              style={{ color: `${fontColor}88` }}
-            >
-              Faltam
-            </span>
-            <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold" style={{ color: fontColor }}>
-              {remainingStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>visitas</span>
-            </div>
+            {remainingStamps > 0 ? (
+              <>
+                <span 
+                  className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] mb-0.5"
+                  style={{ color: `${fontColor}88` }}
+                >
+                  Faltam
+                </span>
+                <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold" style={{ color: fontColor }}>
+                  {remainingStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>visitas</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <span 
+                  className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] mb-0.5"
+                  style={{ color: `${fontColor}88` }}
+                >
+                  Faltam
+                </span>
+                <div 
+                  className="text-[clamp(11px,2.8vw,14px)] font-extrabold uppercase tracking-wide"
+                  style={{ color: fontColor }}
+                >
+                  Cartão Completo
+                </div>
+              </>
+            )}
           </div>
           <div className="flex flex-col items-center justify-center py-1.5">
             <span 
@@ -282,7 +301,7 @@ const CardPage = () => {
               Total
             </span>
             <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold" style={{ color: fontColor }}>
-              {String(currentStamps).padStart(2, '0')} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>selos</span>
+              {currentStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>selos</span>
             </div>
           </div>
         </div>
