@@ -51,6 +51,7 @@ interface CompanyDataForm {
   email: string;
   address: string;
   urlsite: string;
+  loyaltytext: string;
 }
 
 
@@ -85,6 +86,7 @@ const Admin = () => {
     email: "",
     address: "",
     urlsite: "",
+    loyaltytext: "",
   });
   const [savingCompany, setSavingCompany] = useState(false);
 
@@ -144,6 +146,7 @@ const Admin = () => {
         email: company.email || "",
         address: company.address || "",
         urlsite: company.urlsite || "",
+        loyaltytext: company.loyaltytext || "",
       });
     }
   };
@@ -739,6 +742,19 @@ const Admin = () => {
               </div>
               <p className="text-xs text-muted-foreground">
                 URL final: {window.location.origin}/empresa/{companyDataForm.urlsite || '[seu-link]'}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company-loyaltytext">Texto de Apresentação</Label>
+              <Textarea
+                id="company-loyaltytext"
+                value={companyDataForm.loyaltytext}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, loyaltytext: e.target.value})}
+                placeholder="Junte 10 selos e ganhe um prêmio!"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                Este texto será exibido na página inicial da sua empresa
               </p>
             </div>
           </div>

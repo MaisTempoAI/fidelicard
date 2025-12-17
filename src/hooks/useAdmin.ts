@@ -67,6 +67,7 @@ export const updateCompanyData = async (
     email?: string;
     address?: string;
     urlsite?: string;
+    loyaltytext?: string;
   }
 ) => {
   const { error } = await supabase
