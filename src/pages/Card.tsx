@@ -273,7 +273,7 @@ const CardPage = () => {
                   Faltam
                 </span>
                 <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold" style={{ color: fontColor }}>
-                  {remainingStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>visitas</span>
+                  {remainingStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>selos</span>
                 </div>
               </>
             ) : cardData.rescued ? (
