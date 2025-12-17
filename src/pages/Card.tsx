@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
 
@@ -30,6 +30,7 @@ interface CompanyData {
   elogo: string | null;
   primarycolour: string | null;
   secundarycolour: string | null;
+  type: string | null;
 }
 
 const CardPage = () => {
@@ -100,6 +101,7 @@ const CardPage = () => {
                   elogo: company.elogo,
                   primarycolour: company.primarycolour,
                   secundarycolour: company.secundarycolour,
+                  type: company.type,
                 });
               }
             }
@@ -147,13 +149,15 @@ const CardPage = () => {
   const currentStamps = cardData.custamp;
   const requiredStamps = cardData.reqstamp;
   const companyName = companyData?.name || "Meu Restaurante";
+  const clientName = clientData?.nome || "Cliente";
   // Usa texto/cores do CoCard com fallback para empresa
-  const loyaltyText = coCardData?.text || companyData?.loyaltytext || `Junte ${requiredStamps} carimbos e ganhe um almoço gratuito!`;
+  const loyaltyText = coCardData?.text || companyData?.loyaltytext || `Complete ${requiredStamps} selos e ganhe um almoço gratuito!`;
   const exchangeProducts = coCardData?.prod || companyData?.exchangeproducts;
   const remainingStamps = requiredStamps - currentStamps;
   const primaryColor = coCardData?.pricolour || companyData?.primarycolour || "#f97316";
   const secondaryColor = coCardData?.seccolour || companyData?.secundarycolour || "#ea580c";
   const companyLogo = companyData?.elogo;
+  const companyType = companyData?.type?.toUpperCase() || "DEFAULT";
 
   // Calculate days remaining until expiration
   const calculateDaysRemaining = () => {
@@ -171,6 +175,93 @@ const CardPage = () => {
   const stamps = Array.from({ length: requiredStamps }, (_, i) => i < currentStamps);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
 
+  // BARBER Layout
+  if (companyType === 'BARBER') {
+    return (
+      <div className="bg-[#e5e5e5] min-h-[100dvh] flex items-center justify-center p-2.5 md:bg-gradient-to-br md:from-[#1a1a1a] md:to-[#2d2d2d] font-outfit">
+        <div className="bg-[#121212] w-[calc(100vw-20px)] max-w-[400px] min-w-[320px] max-h-[calc(100dvh-20px)] rounded-[40px] py-[30px] px-[25px] shadow-[0_40px_80px_rgba(0,0,0,0.5)] flex flex-col items-center gap-[clamp(15px,3vh,30px)] text-white md:shadow-[0_50px_100px_rgba(0,0,0,0.7)] overflow-auto">
+          
+          {/* Header */}
+          <header className="w-full text-center mb-[clamp(5px,1vh,10px)]">
+            <div className="flex items-center justify-center gap-3 text-[clamp(32px,8vw,42px)] font-light tracking-tight mb-[clamp(8px,1.5vh,15px)]">
+              <Scissors className="text-[#dcd0c0] w-[clamp(26px,6.5vw,32px)] h-[clamp(26px,6.5vw,32px)]" />
+              <span className="font-light">{companyName.split(' ')[0]}<span className="font-extrabold">{companyName.split(' ').slice(1).join(' ') || 'Shop'}</span></span>
+            </div>
+            
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="text-[clamp(18px,4.5vw,22px)] font-bold text-white">{clientName}</div>
+              <div className="flex flex-wrap justify-center gap-3 text-[clamp(11px,3vw,14px)] font-medium text-[#888] bg-white/5 py-1.5 px-3.5 rounded-[20px]">
+                <span>#{cardData.cardcode}</span>
+                {daysRemaining !== null && (
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" /> {daysRemaining > 0 ? `${daysRemaining} dias` : 'Expirado'}
+                  </span>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Stamps Area */}
+          <div className="w-full bg-[#dcd0c0] rounded-[30px] p-[clamp(25px,4vh,40px)_18px] flex flex-col items-center shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]">
+            <div className="grid grid-cols-5 gap-[clamp(12px,2.5vh,20px)_10px] w-full justify-items-center mb-[clamp(12px,2vh,25px)]">
+              {stamps.map((filled, i) => (
+                <div key={i} className="stamp">
+                  <Armchair 
+                    className={`w-[clamp(26px,6vw,34px)] h-[clamp(26px,6vw,34px)] transition-transform duration-200 ${
+                      filled 
+                        ? 'text-[#121212] scale-110' 
+                        : 'text-[#a89f91] opacity-35'
+                    }`} 
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="text-[#5a5246] text-[clamp(11px,3vw,14px)] font-semibold text-center tracking-wide px-2.5">
+              {loyaltyText}
+            </p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="w-full grid grid-cols-2 gap-4 py-[clamp(8px,1.5vh,10px)] border-y border-white/10">
+            <div className="flex flex-col items-center justify-center py-2 border-r border-white/10">
+              <span className="text-[clamp(10px,2.5vw,13px)] uppercase tracking-[2px] text-[#888] mb-1">Faltam</span>
+              <div className="text-[clamp(20px,5.5vw,28px)] font-extrabold text-[#dcd0c0]">
+                {remainingStamps} <span className="text-white text-[clamp(11px,3vw,14px)] font-normal ml-1">visitas</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-center justify-center py-2">
+              <span className="text-[clamp(10px,2.5vw,13px)] uppercase tracking-[2px] text-[#888] mb-1">Total</span>
+              <div className="text-[clamp(20px,5.5vw,28px)] font-extrabold text-[#dcd0c0]">
+                {String(currentStamps).padStart(2, '0')} <span className="text-white text-[clamp(11px,3vw,14px)] font-normal ml-1">selos</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-auto flex flex-col items-center gap-[clamp(10px,2vh,15px)] w-full">
+            <div className="font-space-mono text-[clamp(18px,5vw,24px)] font-bold tracking-[clamp(4px,1.5vw,6px)] opacity-90 text-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+              {cardData.cardcode}
+            </div>
+            
+            <div className="bg-white p-2.5 rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-[clamp(110px,28vw,140px)] h-[clamp(110px,28vw,140px)] flex items-center justify-center">
+              <img 
+                src={qrCodeUrl} 
+                alt="QR Code" 
+                className="w-full h-auto mix-blend-multiply" 
+              />
+            </div>
+            
+            <div className="text-[clamp(8px,2vw,10px)] tracking-[2px] text-[#444] font-bold mt-1">
+              FIDELICARD ®
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // DEFAULT Layout (existing)
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       {/* Decorative background */}
@@ -232,7 +323,7 @@ const CardPage = () => {
                   {loyaltyText}
                 </h2>
                 <p className="text-3xl font-bold text-primary mt-3">
-                  Carimbos: {currentStamps}
+                  Selos: {currentStamps}
                 </p>
               </div>
 
@@ -278,7 +369,7 @@ const CardPage = () => {
                   ? "✅ Este cartão já foi resgatado"
                   : cardData.completed
                   ? "🎉 Parabéns! Você completou seu cartão!"
-                  : `Faltam ${remainingStamps} Carimbos para completar seu cartão!`}
+                  : `Faltam ${remainingStamps} Selos para completar seu cartão!`}
               </p>
 
               {/* Exchange Products - hide if rescued */}
@@ -383,7 +474,7 @@ const CardPage = () => {
       </div>
 
       <p className="text-xs text-muted-foreground mt-6 text-center">
-        Mostre este QR Code ao atendente para ganhar seu carimbo
+        Mostre este QR Code ao atendente para ganhar seu selo
       </p>
     </div>
   );
