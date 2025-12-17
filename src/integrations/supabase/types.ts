@@ -135,6 +135,7 @@ export type Database = {
           company: string | null
           created_at: string
           days: number | null
+          icon: string | null
           id: number
           name: string | null
           pricolour: string | null
@@ -149,6 +150,7 @@ export type Database = {
           company?: string | null
           created_at?: string
           days?: number | null
+          icon?: string | null
           id?: number
           name?: string | null
           pricolour?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           company?: string | null
           created_at?: string
           days?: number | null
+          icon?: string | null
           id?: number
           name?: string | null
           pricolour?: string | null
