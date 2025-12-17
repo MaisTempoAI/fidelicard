@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { UtensilsCrossed, Loader2, ArrowLeft, Plus, CheckCircle, Clock, Gift, User, Megaphone } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, CheckCircle, Gift, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getClientByPhone, 
@@ -15,7 +14,7 @@ import {
   createCard,
   createCardFromCoCard
 } from "@/hooks/useLoyalty";
-import { getActiveCoCards, CoCard } from "@/hooks/useCoCards";
+import { getActiveCoCards, getFirstActiveCoCardColors, CoCard, CompanyColors } from "@/hooks/useCoCards";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -52,6 +51,7 @@ const ClientCards = () => {
   const [showNameForm, setShowNameForm] = useState(false);
   const [clientName, setClientName] = useState("");
   const [isSubmittingName, setIsSubmittingName] = useState(false);
+  const [colors, setColors] = useState<CompanyColors>({ bgColor: '#121212', fontColor: '#dcd0c0' });
   
   // Promotion selection
   const [showPromotionSelection, setShowPromotionSelection] = useState(false);
@@ -80,6 +80,10 @@ const ClientCards = () => {
           loyaltystamps: companyData.loyaltystamps,
           elogo: companyData.elogo,
         });
+
+        // Fetch colors from first active CoCard
+        const companyColors = await getFirstActiveCoCardColors(companyData.id);
+        setColors(companyColors);
 
         // Busca cliente
         const client = await getClientByPhone(phone, companyData.id);
@@ -257,170 +261,246 @@ const ClientCards = () => {
   const rescuedCards = cards.filter(c => c.rescued);
   const canCreateNew = !activeCard || activeCard.completed;
 
+  // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-muted-foreground mt-4">Carregando seus cartões...</p>
-      </div>
-    );
-  }
-
-  // Formulário de nome para novos clientes
-  if (showNameForm) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        {/* Decorative background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
-        </div>
-
-        {/* Header */}
-        <div className="text-center mb-8 relative z-10">
-          <div className="mx-auto w-20 h-20 rounded-full gradient-warm flex items-center justify-center mb-4 shadow-lg">
-            {company?.elogo ? (
-              <img src={company.elogo} alt={company.name || "Logo"} className="w-12 h-12 rounded-full object-cover" />
-            ) : (
-              <UtensilsCrossed className="w-10 h-10 text-primary-foreground" />
-            )}
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">{company?.name}</h1>
-          <p className="text-muted-foreground text-sm mt-1">Cartão Fidelidade</p>
-        </div>
-
-        {/* Name Form Card */}
-        <Card className="w-full max-w-sm relative z-10 border-primary/20 shadow-xl">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-              <User className="w-7 h-7 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold text-foreground">
-              Como gostaria de ser chamado?
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Digite seu nome para criar seu cartão fidelidade
-            </p>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="space-y-4">
-              <Input
-                type="text"
-                placeholder="Seu nome"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                className="h-12 text-lg text-center"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleNameSubmit();
-                  }
-                }}
-              />
-              <Button
-                onClick={handleNameSubmit}
-                disabled={isSubmittingName || !clientName.trim()}
-                className="w-full h-12 text-lg gradient-warm hover:opacity-90 transition-opacity"
-              >
-                {isSubmittingName ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Criando...
-                  </>
-                ) : (
-                  "Continuar"
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <p className="text-xs text-muted-foreground mt-8 text-center relative z-10">
-          Cartão Fidelidade Digital • {company?.name}
+      <div 
+        className="min-h-[100dvh] flex flex-col items-center justify-center p-4"
+        style={{ backgroundColor: colors.bgColor }}
+      >
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: colors.fontColor }} />
+        <p className="mt-4 font-light" style={{ color: colors.fontColor, opacity: 0.6 }}>
+          Carregando seus cartões...
         </p>
       </div>
     );
   }
 
-  // Tela de seleção de promoção
+  // Name form for new clients
+  if (showNameForm) {
+    return (
+      <div 
+        className="min-h-[100dvh] flex flex-col items-center justify-center px-6 py-8 overflow-hidden"
+        style={{ backgroundColor: colors.bgColor }}
+      >
+        {/* Logo */}
+        <div className="mb-6">
+          {company?.elogo ? (
+            <img
+              src={company.elogo}
+              alt={company.name || "Logo"}
+              className="w-[clamp(60px,15vw,80px)] h-[clamp(60px,15vw,80px)] rounded-full object-cover"
+              style={{ border: `2px solid ${colors.fontColor}20` }}
+            />
+          ) : (
+            <div 
+              className="w-[clamp(60px,15vw,80px)] h-[clamp(60px,15vw,80px)] rounded-full flex items-center justify-center"
+              style={{ backgroundColor: colors.fontColor, color: colors.bgColor }}
+            >
+              <span className="text-[clamp(24px,6vw,32px)] font-bold">{company?.name?.charAt(0) || "E"}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Company Name */}
+        <h1 
+          className="text-[clamp(24px,6vw,36px)] font-light tracking-tight text-center mb-1"
+          style={{ color: colors.fontColor, fontFamily: "'Playfair Display', serif" }}
+        >
+          {company?.name}
+        </h1>
+
+        {/* Subtitle */}
+        <p 
+          className="text-[clamp(12px,3vw,14px)] font-light tracking-[1.5px] uppercase mb-8"
+          style={{ color: colors.fontColor, opacity: 0.5 }}
+        >
+          Cartão Fidelidade
+        </p>
+
+        {/* Separator */}
+        <div 
+          className="w-16 h-[1px] mb-8"
+          style={{ backgroundColor: colors.fontColor, opacity: 0.2 }}
+        />
+
+        {/* Question */}
+        <p 
+          className="text-[clamp(16px,4vw,20px)] text-center font-light mb-2"
+          style={{ color: colors.fontColor, fontFamily: "'Playfair Display', serif" }}
+        >
+          Como gostaria de ser chamado?
+        </p>
+        <p 
+          className="text-[clamp(12px,3vw,14px)] text-center font-light mb-8"
+          style={{ color: colors.fontColor, opacity: 0.5 }}
+        >
+          Digite seu nome para criar seu cartão
+        </p>
+
+        {/* Name Form */}
+        <div className="w-full max-w-[280px] space-y-4">
+          <Input
+            type="text"
+            placeholder="Seu nome"
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
+            className="text-center text-[clamp(16px,4vw,18px)] h-14 border-0 rounded-2xl font-light"
+            style={{ 
+              backgroundColor: colors.fontColor, 
+              color: colors.bgColor,
+            }}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleNameSubmit();
+              }
+            }}
+          />
+          <Button
+            onClick={handleNameSubmit}
+            disabled={isSubmittingName || !clientName.trim()}
+            className="w-full h-14 text-[clamp(14px,3.5vw,16px)] font-medium rounded-2xl border-0 transition-opacity hover:opacity-90"
+            style={{ 
+              backgroundColor: colors.fontColor, 
+              color: colors.bgColor,
+            }}
+          >
+            {isSubmittingName ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Criando...
+              </>
+            ) : (
+              "Continuar"
+            )}
+          </Button>
+        </div>
+
+        {/* Footer */}
+        <p 
+          className="absolute bottom-6 text-[clamp(9px,2.2vw,10px)] tracking-[1.5px] uppercase font-light"
+          style={{ color: colors.fontColor, opacity: 0.3 }}
+        >
+          FIDELICARD ®
+        </p>
+      </div>
+    );
+  }
+
+  // Promotion selection screen
   if (showPromotionSelection) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        {/* Decorative background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
+      <div 
+        className="min-h-[100dvh] flex flex-col items-center px-6 py-8 overflow-y-auto"
+        style={{ backgroundColor: colors.bgColor }}
+      >
+        {/* Logo */}
+        <div className="mt-8 mb-6">
+          {company?.elogo ? (
+            <img
+              src={company.elogo}
+              alt={company.name || "Logo"}
+              className="w-[clamp(50px,12vw,70px)] h-[clamp(50px,12vw,70px)] rounded-full object-cover"
+              style={{ border: `2px solid ${colors.fontColor}20` }}
+            />
+          ) : (
+            <div 
+              className="w-[clamp(50px,12vw,70px)] h-[clamp(50px,12vw,70px)] rounded-full flex items-center justify-center"
+              style={{ backgroundColor: colors.fontColor, color: colors.bgColor }}
+            >
+              <span className="text-[clamp(20px,5vw,28px)] font-bold">{company?.name?.charAt(0) || "E"}</span>
+            </div>
+          )}
         </div>
 
-        {/* Header */}
-        <div className="text-center mb-8 relative z-10">
-          <div className="mx-auto w-20 h-20 rounded-full gradient-warm flex items-center justify-center mb-4 shadow-lg">
-            {company?.elogo ? (
-              <img src={company.elogo} alt={company.name || "Logo"} className="w-12 h-12 rounded-full object-cover" />
-            ) : (
-              <UtensilsCrossed className="w-10 h-10 text-primary-foreground" />
-            )}
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">{company?.name}</h1>
-          <p className="text-muted-foreground text-sm mt-1">Escolha sua Promoção</p>
-        </div>
+        {/* Title */}
+        <h1 
+          className="text-[clamp(20px,5vw,28px)] font-light tracking-tight text-center mb-1"
+          style={{ color: colors.fontColor, fontFamily: "'Playfair Display', serif" }}
+        >
+          {company?.name}
+        </h1>
+        <p 
+          className="text-[clamp(11px,2.8vw,13px)] font-light tracking-[1.5px] uppercase mb-8"
+          style={{ color: colors.fontColor, opacity: 0.5 }}
+        >
+          Escolha sua Promoção
+        </p>
 
         {/* Promotion Cards */}
-        <div className="w-full max-w-md space-y-4 relative z-10">
+        <div className="w-full max-w-md space-y-4 flex-1">
           {loadingPromotions ? (
             <div className="text-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-              <p className="text-muted-foreground mt-2">Carregando promoções...</p>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto" style={{ color: colors.fontColor }} />
+              <p className="mt-2 font-light" style={{ color: colors.fontColor, opacity: 0.6 }}>
+                Carregando promoções...
+              </p>
             </div>
           ) : (
             activePromotions.map((promo) => (
-              <Card 
+              <button
                 key={promo.id}
-                className="border-primary/20 shadow-lg hover:shadow-xl transition-all cursor-pointer overflow-hidden"
+                className="w-full p-5 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{ 
+                  backgroundColor: `${colors.fontColor}10`,
+                  border: `1px solid ${colors.fontColor}20`
+                }}
                 onClick={() => handleSelectPromotion(promo)}
+                disabled={creatingFromPromotion === promo.id}
               >
-                {/* Gradient Header */}
-                <div 
-                  className="h-3"
-                  style={{ background: `linear-gradient(90deg, ${promo.pricolour || '#FF6B35'}, ${promo.seccolour || '#F7931E'})` }}
-                />
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: `linear-gradient(135deg, ${promo.pricolour || '#FF6B35'}, ${promo.seccolour || '#F7931E'})` }}
-                    >
-                      <Megaphone className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg text-foreground mb-1">{promo.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{promo.text}</p>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                          {promo.stamps} carimbos
-                        </span>
-                        <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
-                          {promo.days} dias de validade
-                        </span>
-                        {promo.prod && (
-                          <span className="text-xs bg-green-500/10 text-green-700 px-2 py-1 rounded-full">
-                            {promo.prod}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {creatingFromPromotion === promo.id ? (
-                      <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />
-                    ) : (
-                      <Gift className="w-5 h-5 text-primary shrink-0" />
-                    )}
+                <div className="flex items-start gap-4">
+                  <div 
+                    className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${promo.pricolour || colors.bgColor}, ${promo.seccolour || colors.fontColor})` 
+                    }}
+                  >
+                    <Megaphone className="w-6 h-6 text-white" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex-1 min-w-0">
+                    <h3 
+                      className="font-medium text-[clamp(14px,3.5vw,16px)] mb-1"
+                      style={{ color: colors.fontColor }}
+                    >
+                      {promo.name}
+                    </h3>
+                    <p 
+                      className="text-[clamp(12px,3vw,13px)] mb-3 line-clamp-2 font-light"
+                      style={{ color: colors.fontColor, opacity: 0.6 }}
+                    >
+                      {promo.text}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span 
+                        className="text-[clamp(10px,2.5vw,11px)] px-2 py-1 rounded-full"
+                        style={{ backgroundColor: `${colors.fontColor}15`, color: colors.fontColor }}
+                      >
+                        {promo.stamps} selos
+                      </span>
+                      <span 
+                        className="text-[clamp(10px,2.5vw,11px)] px-2 py-1 rounded-full"
+                        style={{ backgroundColor: `${colors.fontColor}10`, color: colors.fontColor, opacity: 0.7 }}
+                      >
+                        {promo.days} dias
+                      </span>
+                    </div>
+                  </div>
+                  {creatingFromPromotion === promo.id ? (
+                    <Loader2 className="w-5 h-5 animate-spin shrink-0" style={{ color: colors.fontColor }} />
+                  ) : (
+                    <Gift className="w-5 h-5 shrink-0" style={{ color: colors.fontColor, opacity: 0.5 }} />
+                  )}
+                </div>
+              </button>
             ))
           )}
 
           {/* Back button */}
           <Button
             variant="ghost"
-            className="w-full mt-4"
+            className="w-full mt-4 hover:bg-transparent"
+            style={{ color: colors.fontColor, opacity: 0.6 }}
             onClick={() => {
               setShowPromotionSelection(false);
               navigate(`/empresa/${companyId}`);
@@ -431,26 +511,30 @@ const ClientCards = () => {
           </Button>
         </div>
 
-        <p className="text-xs text-muted-foreground mt-8 text-center relative z-10">
-          Cartão Fidelidade Digital • {company?.name}
+        {/* Footer */}
+        <p 
+          className="mt-8 text-[clamp(9px,2.2vw,10px)] tracking-[1.5px] uppercase font-light"
+          style={{ color: colors.fontColor, opacity: 0.3 }}
+        >
+          FIDELICARD ®
         </p>
       </div>
     );
   }
 
+  // Main cards view
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center p-4 py-8">
-      {/* Decorative background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
-      </div>
-
+    <div 
+      className="min-h-[100dvh] flex flex-col items-center px-6 py-8 overflow-y-auto"
+      style={{ backgroundColor: colors.bgColor }}
+    >
       {/* Back button */}
-      <div className="w-full max-w-md relative z-10 mb-4">
+      <div className="w-full max-w-md mb-4">
         <Button
           variant="ghost"
           size="sm"
-          className="text-muted-foreground hover:text-foreground"
+          className="hover:bg-transparent"
+          style={{ color: colors.fontColor, opacity: 0.6 }}
           onClick={() => navigate(`/empresa/${companyId}`)}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -459,56 +543,101 @@ const ClientCards = () => {
       </div>
 
       {/* Header */}
-      <div className="text-center mb-6 relative z-10">
-        <div className="mx-auto w-16 h-16 rounded-full gradient-warm flex items-center justify-center mb-3 shadow-lg">
-          {company?.elogo ? (
-            <img src={company.elogo} alt={company.name || "Logo"} className="w-10 h-10 rounded-full object-cover" />
-          ) : (
-            <UtensilsCrossed className="w-8 h-8 text-primary-foreground" />
-          )}
-        </div>
-        <h1 className="text-2xl font-bold text-foreground">{company?.name}</h1>
-        <p className="text-muted-foreground text-sm">Seus Cartões Fidelidade</p>
+      <div className="text-center mb-6">
+        {company?.elogo ? (
+          <img
+            src={company.elogo}
+            alt={company.name || "Logo"}
+            className="w-[clamp(50px,12vw,70px)] h-[clamp(50px,12vw,70px)] rounded-full object-cover mx-auto mb-4"
+            style={{ border: `2px solid ${colors.fontColor}20` }}
+          />
+        ) : (
+          <div 
+            className="w-[clamp(50px,12vw,70px)] h-[clamp(50px,12vw,70px)] rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ backgroundColor: colors.fontColor, color: colors.bgColor }}
+          >
+            <span className="text-[clamp(20px,5vw,28px)] font-bold">{company?.name?.charAt(0) || "E"}</span>
+          </div>
+        )}
+        <h1 
+          className="text-[clamp(20px,5vw,28px)] font-light tracking-tight"
+          style={{ color: colors.fontColor, fontFamily: "'Playfair Display', serif" }}
+        >
+          {company?.name}
+        </h1>
+        <p 
+          className="text-[clamp(11px,2.8vw,13px)] font-light tracking-[1.5px] uppercase"
+          style={{ color: colors.fontColor, opacity: 0.5 }}
+        >
+          Seus Cartões Fidelidade
+        </p>
       </div>
 
       {/* Active Card */}
       {activeCard && (
-        <Card 
-          className="w-full max-w-md relative z-10 border-primary/30 shadow-lg mb-4 cursor-pointer hover:shadow-xl transition-shadow"
+        <button
+          className="w-full max-w-md p-5 rounded-2xl mb-4 text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
+          style={{ 
+            backgroundColor: `${colors.fontColor}10`,
+            border: `1px solid ${colors.fontColor}20`
+          }}
           onClick={() => navigate(`/card/${activeCard.cardcode}`)}
         >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-primary" />
-                <span className="font-semibold text-foreground">Cartão Ativo</span>
-              </div>
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                Em andamento
+          <div className="flex items-center justify-between mb-3">
+            <span 
+              className="text-[clamp(11px,2.8vw,12px)] font-medium tracking-wide uppercase"
+              style={{ color: colors.fontColor }}
+            >
+              Cartão Ativo
+            </span>
+            <span 
+              className="text-[clamp(10px,2.5vw,11px)] px-2 py-1 rounded-full"
+              style={{ backgroundColor: `${colors.fontColor}15`, color: colors.fontColor }}
+            >
+              Em andamento
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p 
+                className="font-mono text-[clamp(16px,4vw,20px)] font-bold tracking-[3px]"
+                style={{ color: colors.fontColor }}
+              >
+                {activeCard.cardcode}
+              </p>
+              <p 
+                className="text-[clamp(12px,3vw,13px)] font-light"
+                style={{ color: colors.fontColor, opacity: 0.6 }}
+              >
+                {activeCard.custamp} de {activeCard.reqstamp} selos
+              </p>
+            </div>
+            <div 
+              className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: `${colors.fontColor}15` }}
+            >
+              <span 
+                className="text-[clamp(18px,4.5vw,24px)] font-bold"
+                style={{ color: colors.fontColor }}
+              >
+                {activeCard.custamp}
               </span>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-mono text-lg font-bold text-primary">{activeCard.cardcode}</p>
-                <p className="text-sm text-muted-foreground">
-                  {activeCard.custamp} de {activeCard.reqstamp} carimbos
-                </p>
-              </div>
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">{activeCard.custamp}</span>
-              </div>
-            </div>
-            {/* Mini progress */}
-            <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${(activeCard.custamp / activeCard.reqstamp) * 100}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          {/* Progress bar */}
+          <div 
+            className="mt-3 h-1 rounded-full overflow-hidden"
+            style={{ backgroundColor: `${colors.fontColor}15` }}
+          >
+            <div 
+              className="h-full rounded-full transition-all"
+              style={{ 
+                width: `${(activeCard.custamp / activeCard.reqstamp) * 100}%`,
+                backgroundColor: colors.fontColor
+              }}
+            />
+          </div>
+        </button>
       )}
 
       {/* Create New Card Button */}
@@ -516,7 +645,11 @@ const ClientCards = () => {
         <Button
           onClick={handleCreateNewCard}
           disabled={isCreating}
-          className="w-full max-w-md mb-6 h-14 text-lg gradient-warm hover:opacity-90 transition-opacity relative z-10"
+          className="w-full max-w-md mb-6 h-14 text-[clamp(14px,3.5vw,16px)] font-medium rounded-2xl border-0 transition-opacity hover:opacity-90"
+          style={{ 
+            backgroundColor: colors.fontColor, 
+            color: colors.bgColor,
+          }}
         >
           {isCreating ? (
             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -527,40 +660,56 @@ const ClientCards = () => {
         </Button>
       )}
 
-      {/* Completed Cards (not rescued yet) */}
+      {/* Completed Cards */}
       {completedCards.length > 0 && (
-        <div className="w-full max-w-md relative z-10 mb-4">
-          <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
+        <div className="w-full max-w-md mb-4">
+          <h2 
+            className="text-[clamp(12px,3vw,14px)] font-medium mb-3 flex items-center gap-2 tracking-wide uppercase"
+            style={{ color: colors.fontColor }}
+          >
+            <CheckCircle className="w-4 h-4" style={{ color: '#22c55e' }} />
             Cartões Completos ({completedCards.length})
           </h2>
           <div className="space-y-3">
             {completedCards.map((card) => (
-              <Card 
+              <button
                 key={card.id}
-                className="border-green-500/20 bg-green-500/5 cursor-pointer hover:bg-green-500/10 transition-colors"
+                className="w-full p-4 rounded-2xl text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
+                style={{ 
+                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                  border: '1px solid rgba(34, 197, 94, 0.2)'
+                }}
                 onClick={() => navigate(`/card/${card.cardcode}`)}
               >
-                <CardContent className="py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-mono text-base font-bold text-foreground">{card.cardcode}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Completado em {card.completedat 
-                          ? format(new Date(card.completedat), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                          : format(new Date(card.created_at), "dd/MM/yyyy", { locale: ptBR })
-                        }
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-6 h-6 text-green-500" />
-                      <span className="text-sm font-medium text-green-600">
-                        {card.reqstamp}/{card.reqstamp}
-                      </span>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p 
+                      className="font-mono text-[clamp(14px,3.5vw,16px)] font-bold tracking-[2px]"
+                      style={{ color: colors.fontColor }}
+                    >
+                      {card.cardcode}
+                    </p>
+                    <p 
+                      className="text-[clamp(10px,2.5vw,11px)] font-light"
+                      style={{ color: colors.fontColor, opacity: 0.5 }}
+                    >
+                      Completado em {card.completedat 
+                        ? format(new Date(card.completedat), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                        : format(new Date(card.created_at), "dd/MM/yyyy", { locale: ptBR })
+                      }
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" style={{ color: '#22c55e' }} />
+                    <span 
+                      className="text-[clamp(12px,3vw,13px)] font-medium"
+                      style={{ color: '#22c55e' }}
+                    >
+                      {card.reqstamp}/{card.reqstamp}
+                    </span>
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
         </div>
@@ -568,49 +717,73 @@ const ClientCards = () => {
 
       {/* Rescued Cards */}
       {rescuedCards.length > 0 && (
-        <div className="w-full max-w-md relative z-10">
-          <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Gift className="w-5 h-5 text-gray-500" />
+        <div className="w-full max-w-md">
+          <h2 
+            className="text-[clamp(12px,3vw,14px)] font-medium mb-3 flex items-center gap-2 tracking-wide uppercase"
+            style={{ color: colors.fontColor, opacity: 0.6 }}
+          >
+            <Gift className="w-4 h-4" />
             Cartões Resgatados ({rescuedCards.length})
           </h2>
           <div className="space-y-3">
             {rescuedCards.map((card) => (
-              <Card 
+              <button
                 key={card.id}
-                className="border-gray-400/30 bg-gray-500/10 cursor-pointer hover:bg-gray-500/15 transition-colors"
+                className="w-full p-4 rounded-2xl text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
+                style={{ 
+                  backgroundColor: `${colors.fontColor}05`,
+                  border: `1px solid ${colors.fontColor}10`
+                }}
                 onClick={() => navigate(`/card/${card.cardcode}`)}
               >
-                <CardContent className="py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-mono text-base font-bold text-gray-500">{card.cardcode}</p>
-                      <p className="text-xs text-gray-500">
-                        Completado em {card.completedat 
-                          ? format(new Date(card.completedat), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                          : format(new Date(card.created_at), "dd/MM/yyyy", { locale: ptBR })
-                        }
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-full font-medium">
-                        RESGATADO
-                      </span>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p 
+                      className="font-mono text-[clamp(14px,3.5vw,16px)] font-bold tracking-[2px]"
+                      style={{ color: colors.fontColor, opacity: 0.5 }}
+                    >
+                      {card.cardcode}
+                    </p>
+                    <p 
+                      className="text-[clamp(10px,2.5vw,11px)] font-light"
+                      style={{ color: colors.fontColor, opacity: 0.4 }}
+                    >
+                      Completado em {card.completedat 
+                        ? format(new Date(card.completedat), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                        : format(new Date(card.created_at), "dd/MM/yyyy", { locale: ptBR })
+                      }
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
+                  <span 
+                    className="text-[clamp(9px,2.2vw,10px)] px-2 py-1 rounded-full font-medium uppercase tracking-wide"
+                    style={{ backgroundColor: `${colors.fontColor}20`, color: colors.fontColor }}
+                  >
+                    Resgatado
+                  </span>
+                </div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
+      {/* Empty state */}
       {cards.length === 0 && (
-        <div className="text-center relative z-10">
-          <p className="text-muted-foreground">Nenhum cartão encontrado</p>
+        <div className="text-center">
+          <p 
+            className="font-light mb-4"
+            style={{ color: colors.fontColor, opacity: 0.6 }}
+          >
+            Nenhum cartão encontrado
+          </p>
           <Button
             onClick={handleCreateNewCard}
             disabled={isCreating}
-            className="mt-4 gradient-warm"
+            className="h-12 px-8 text-[clamp(14px,3.5vw,16px)] font-medium rounded-2xl border-0 transition-opacity hover:opacity-90"
+            style={{ 
+              backgroundColor: colors.fontColor, 
+              color: colors.bgColor,
+            }}
           >
             {isCreating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
             Criar Primeiro Cartão
@@ -618,8 +791,12 @@ const ClientCards = () => {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground mt-8 text-center relative z-10">
-        Cartão Fidelidade Digital • {company?.name}
+      {/* Footer */}
+      <p 
+        className="mt-8 text-[clamp(9px,2.2vw,10px)] tracking-[1.5px] uppercase font-light"
+        style={{ color: colors.fontColor, opacity: 0.3 }}
+      >
+        FIDELICARD ®
       </p>
     </div>
   );
