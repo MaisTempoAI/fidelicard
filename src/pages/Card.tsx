@@ -178,23 +178,23 @@ const CardPage = () => {
   // BARBER Layout
   if (companyType === 'BARBER') {
     return (
-      <div className="bg-[#e5e5e5] min-h-[100dvh] flex items-center justify-center p-2.5 md:bg-gradient-to-br md:from-[#1a1a1a] md:to-[#2d2d2d] font-outfit">
-        <div className="bg-[#121212] w-[calc(100vw-20px)] max-w-[400px] min-w-[320px] max-h-[calc(100dvh-20px)] rounded-[40px] py-[30px] px-[25px] shadow-[0_40px_80px_rgba(0,0,0,0.5)] flex flex-col items-center gap-[clamp(15px,3vh,30px)] text-white md:shadow-[0_50px_100px_rgba(0,0,0,0.7)] overflow-auto">
+      <div className="bg-[#e5e5e5] h-[100dvh] flex items-center justify-center p-2.5 md:bg-gradient-to-br md:from-[#1a1a1a] md:to-[#2d2d2d] font-outfit overflow-hidden">
+        <div className="bg-[#121212] w-[calc(100vw-20px)] max-w-[380px] min-w-[300px] max-h-[calc(100dvh-20px)] rounded-[35px] py-[clamp(18px,2.5vh,28px)] px-[clamp(18px,4vw,22px)] shadow-[0_40px_80px_rgba(0,0,0,0.5)] flex flex-col items-center gap-[clamp(10px,1.8vh,18px)] text-white md:shadow-[0_50px_100px_rgba(0,0,0,0.7)] overflow-hidden">
           
           {/* Header */}
-          <header className="w-full text-center mb-[clamp(5px,1vh,10px)]">
-            <div className="flex items-center justify-center gap-3 text-[clamp(32px,8vw,42px)] font-light tracking-tight mb-[clamp(8px,1.5vh,15px)]">
-              <Scissors className="text-[#dcd0c0] w-[clamp(26px,6.5vw,32px)] h-[clamp(26px,6.5vw,32px)]" />
+          <header className="w-full text-center">
+            <div className="flex items-center justify-center gap-2.5 text-[clamp(26px,6.5vw,36px)] font-light tracking-tight mb-[clamp(5px,1vh,10px)]">
+              <Scissors className="text-[#dcd0c0] w-[clamp(22px,5.5vw,28px)] h-[clamp(22px,5.5vw,28px)]" />
               <span className="font-light">{companyName.split(' ')[0]}<span className="font-extrabold">{companyName.split(' ').slice(1).join(' ') || 'Shop'}</span></span>
             </div>
             
-            <div className="flex flex-col items-center gap-1.5">
-              <div className="text-[clamp(18px,4.5vw,22px)] font-bold text-white">{clientName}</div>
-              <div className="flex flex-wrap justify-center gap-3 text-[clamp(11px,3vw,14px)] font-medium text-[#888] bg-white/5 py-1.5 px-3.5 rounded-[20px]">
+            <div className="flex flex-col items-center gap-1">
+              <div className="text-[clamp(15px,4vw,19px)] font-bold text-white">{clientName}</div>
+              <div className="flex flex-wrap justify-center gap-2.5 text-[clamp(10px,2.5vw,12px)] font-medium text-[#888] bg-white/5 py-1 px-3 rounded-[20px]">
                 <span>#{cardData.cardcode}</span>
                 {daysRemaining !== null && (
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3 h-3" /> {daysRemaining > 0 ? `${daysRemaining} dias` : 'Expirado'}
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-2.5 h-2.5" /> {daysRemaining > 0 ? `${daysRemaining} dias` : 'Expirado'}
                   </span>
                 )}
               </div>
@@ -202,12 +202,12 @@ const CardPage = () => {
           </header>
 
           {/* Stamps Area */}
-          <div className="w-full bg-[#dcd0c0] rounded-[30px] p-[clamp(25px,4vh,40px)_18px] flex flex-col items-center shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]">
-            <div className="grid grid-cols-5 gap-[clamp(12px,2.5vh,20px)_10px] w-full justify-items-center mb-[clamp(12px,2vh,25px)]">
+          <div className="w-full bg-[#dcd0c0] rounded-[25px] p-[clamp(16px,2.5vh,28px)_14px] flex flex-col items-center shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]">
+            <div className="grid grid-cols-5 gap-[clamp(8px,1.8vh,14px)_8px] w-full justify-items-center mb-[clamp(8px,1.5vh,16px)]">
               {stamps.map((filled, i) => (
                 <div key={i} className="stamp">
                   <Armchair 
-                    className={`w-[clamp(26px,6vw,34px)] h-[clamp(26px,6vw,34px)] transition-transform duration-200 ${
+                    className={`w-[clamp(22px,5vw,28px)] h-[clamp(22px,5vw,28px)] transition-transform duration-200 ${
                       filled 
                         ? 'text-[#121212] scale-110' 
                         : 'text-[#a89f91] opacity-35'
@@ -216,34 +216,34 @@ const CardPage = () => {
                 </div>
               ))}
             </div>
-            <p className="text-[#5a5246] text-[clamp(11px,3vw,14px)] font-semibold text-center tracking-wide px-2.5">
+            <p className="text-[#5a5246] text-[clamp(10px,2.5vw,12px)] font-semibold text-center tracking-wide px-2">
               {loyaltyText}
             </p>
           </div>
 
           {/* Stats Grid */}
-          <div className="w-full grid grid-cols-2 gap-4 py-[clamp(8px,1.5vh,10px)] border-y border-white/10">
-            <div className="flex flex-col items-center justify-center py-2 border-r border-white/10">
-              <span className="text-[clamp(10px,2.5vw,13px)] uppercase tracking-[2px] text-[#888] mb-1">Faltam</span>
-              <div className="text-[clamp(20px,5.5vw,28px)] font-extrabold text-[#dcd0c0]">
-                {remainingStamps} <span className="text-white text-[clamp(11px,3vw,14px)] font-normal ml-1">visitas</span>
+          <div className="w-full grid grid-cols-2 gap-3 py-[clamp(5px,1vh,8px)] border-y border-white/10">
+            <div className="flex flex-col items-center justify-center py-1.5 border-r border-white/10">
+              <span className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] text-[#888] mb-0.5">Faltam</span>
+              <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold text-[#dcd0c0]">
+                {remainingStamps} <span className="text-white text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5">visitas</span>
               </div>
             </div>
-            <div className="flex flex-col items-center justify-center py-2">
-              <span className="text-[clamp(10px,2.5vw,13px)] uppercase tracking-[2px] text-[#888] mb-1">Total</span>
-              <div className="text-[clamp(20px,5.5vw,28px)] font-extrabold text-[#dcd0c0]">
-                {String(currentStamps).padStart(2, '0')} <span className="text-white text-[clamp(11px,3vw,14px)] font-normal ml-1">selos</span>
+            <div className="flex flex-col items-center justify-center py-1.5">
+              <span className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] text-[#888] mb-0.5">Total</span>
+              <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold text-[#dcd0c0]">
+                {String(currentStamps).padStart(2, '0')} <span className="text-white text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5">selos</span>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="mt-auto flex flex-col items-center gap-[clamp(10px,2vh,15px)] w-full">
-            <div className="font-space-mono text-[clamp(18px,5vw,24px)] font-bold tracking-[clamp(4px,1.5vw,6px)] opacity-90 text-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+          <div className="mt-auto flex flex-col items-center gap-[clamp(6px,1.2vh,10px)] w-full">
+            <div className="font-space-mono text-[clamp(14px,4vw,20px)] font-bold tracking-[clamp(3px,1vw,5px)] opacity-90">
               {cardData.cardcode}
             </div>
             
-            <div className="bg-white p-2.5 rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-[clamp(110px,28vw,140px)] h-[clamp(110px,28vw,140px)] flex items-center justify-center">
+            <div className="bg-white p-2 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-[clamp(80px,20vw,100px)] h-[clamp(80px,20vw,100px)] flex items-center justify-center">
               <img 
                 src={qrCodeUrl} 
                 alt="QR Code" 
@@ -251,7 +251,7 @@ const CardPage = () => {
               />
             </div>
             
-            <div className="text-[clamp(8px,2vw,10px)] tracking-[2px] text-[#444] font-bold mt-1">
+            <div className="text-[clamp(7px,1.8vw,9px)] tracking-[1.5px] text-[#444] font-bold">
               FIDELICARD ®
             </div>
           </div>
