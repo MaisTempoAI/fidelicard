@@ -276,6 +276,21 @@ const CardPage = () => {
                   {remainingStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>visitas</span>
                 </div>
               </>
+            ) : cardData.rescued ? (
+              <>
+                <span 
+                  className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] mb-0.5"
+                  style={{ color: `${fontColor}88` }}
+                >
+                  Status
+                </span>
+                <div 
+                  className="text-[clamp(10px,2.5vw,12px)] font-extrabold uppercase tracking-wide"
+                  style={{ color: fontColor }}
+                >
+                  Cartão Resgatado!
+                </div>
+              </>
             ) : (
               <>
                 <span 
@@ -300,8 +315,11 @@ const CardPage = () => {
             >
               Total
             </span>
-            <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold" style={{ color: fontColor }}>
-              {currentStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>selos</span>
+            <div 
+              className={`text-[clamp(18px,4.5vw,24px)] font-extrabold ${cardData.rescued ? 'line-through opacity-60' : ''}`}
+              style={{ color: fontColor }}
+            >
+              {currentStamps} <span className={`text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5 ${cardData.rescued ? '' : ''}`} style={{ color: `${fontColor}cc` }}>selos</span>
             </div>
           </div>
         </div>
