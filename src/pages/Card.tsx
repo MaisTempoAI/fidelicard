@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
 
@@ -154,10 +154,31 @@ const CardPage = () => {
   const loyaltyText = coCardData?.text || companyData?.loyaltytext || `Complete ${requiredStamps} selos e ganhe um almoço gratuito!`;
   const exchangeProducts = coCardData?.prod || companyData?.exchangeproducts;
   const remainingStamps = requiredStamps - currentStamps;
-  const primaryColor = coCardData?.pricolour || companyData?.primarycolour || "#f97316";
-  const secondaryColor = coCardData?.seccolour || companyData?.secundarycolour || "#ea580c";
+  // Card appearance from CoCard or company defaults
+  const cardBgColor = coCardData?.pricolour || companyData?.primarycolour || "#121212";
+  const fontColor = coCardData?.seccolour || companyData?.secundarycolour || "#dcd0c0";
+  const cardIcon = coCardData?.icon || "armchair";
   const companyLogo = companyData?.elogo;
-  const companyType = companyData?.type?.toUpperCase() || "DEFAULT";
+
+  // Helper function to get the stamp icon component
+  const getStampIcon = (filled: boolean) => {
+    const baseClass = `w-[clamp(22px,5vw,28px)] h-[clamp(22px,5vw,28px)] transition-transform duration-200`;
+    const colorStyle = filled 
+      ? { color: cardBgColor }
+      : { color: '#a89f91', opacity: 0.35 };
+    const scaleClass = filled ? 'scale-110' : '';
+
+    switch (cardIcon) {
+      case 'star':
+        return <Star className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'x':
+        return <X className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'circle':
+        return <Circle className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      default:
+        return <Armchair className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+    }
+  };
 
   // Calculate days remaining until expiration
   const calculateDaysRemaining = () => {
@@ -175,307 +196,120 @@ const CardPage = () => {
   const stamps = Array.from({ length: requiredStamps }, (_, i) => i < currentStamps);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
 
-  // BARBER Layout
-  if (companyType === 'BARBER') {
-    return (
-      <div className="bg-[#e5e5e5] h-[100dvh] flex items-center justify-center p-2.5 md:bg-gradient-to-br md:from-[#1a1a1a] md:to-[#2d2d2d] font-outfit overflow-hidden">
-        <div className="bg-[#121212] w-[calc(100vw-20px)] max-w-[380px] min-w-[300px] max-h-[calc(100dvh-20px)] rounded-[35px] py-[clamp(18px,2.5vh,28px)] px-[clamp(18px,4vw,22px)] shadow-[0_40px_80px_rgba(0,0,0,0.5)] flex flex-col items-center gap-[clamp(10px,1.8vh,18px)] text-white md:shadow-[0_50px_100px_rgba(0,0,0,0.7)] overflow-hidden">
-          
-          {/* Header */}
-          <header className="w-full text-center">
-            <div className="flex items-center justify-center gap-2.5 text-[clamp(26px,6.5vw,36px)] font-light tracking-tight mb-[clamp(5px,1vh,10px)]">
-              <Scissors className="text-[#dcd0c0] w-[clamp(22px,5.5vw,28px)] h-[clamp(22px,5.5vw,28px)]" />
-              <span className="font-light">{companyName.split(' ')[0]}<span className="font-extrabold">{companyName.split(' ').slice(1).join(' ') || 'Shop'}</span></span>
-            </div>
-            
-            <div className="flex flex-col items-center gap-1">
-              <div className="text-[clamp(15px,4vw,19px)] font-bold text-white">{clientName}</div>
-              <div className="flex flex-wrap justify-center gap-2.5 text-[clamp(10px,2.5vw,12px)] font-medium text-[#888] bg-white/5 py-1 px-3 rounded-[20px]">
-                <span>#{cardData.cardcode}</span>
-                {daysRemaining !== null && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-2.5 h-2.5" /> {daysRemaining > 0 ? `${daysRemaining} dias` : 'Expirado'}
-                  </span>
-                )}
-              </div>
-            </div>
-          </header>
-
-          {/* Stamps Area */}
-          <div className="w-full bg-[#dcd0c0] rounded-[25px] p-[clamp(16px,2.5vh,28px)_14px] flex flex-col items-center shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]">
-            <div className="grid grid-cols-5 gap-[clamp(8px,1.8vh,14px)_8px] w-full justify-items-center mb-[clamp(8px,1.5vh,16px)]">
-              {stamps.map((filled, i) => (
-                <div key={i} className="stamp">
-                  <Armchair 
-                    className={`w-[clamp(22px,5vw,28px)] h-[clamp(22px,5vw,28px)] transition-transform duration-200 ${
-                      filled 
-                        ? 'text-[#121212] scale-110' 
-                        : 'text-[#a89f91] opacity-35'
-                    }`} 
-                  />
-                </div>
-              ))}
-            </div>
-            <p className="text-[#5a5246] text-[clamp(10px,2.5vw,12px)] font-semibold text-center tracking-wide px-2">
-              {loyaltyText}
-            </p>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="w-full grid grid-cols-2 gap-3 py-[clamp(5px,1vh,8px)] border-y border-white/10">
-            <div className="flex flex-col items-center justify-center py-1.5 border-r border-white/10">
-              <span className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] text-[#888] mb-0.5">Faltam</span>
-              <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold text-[#dcd0c0]">
-                {remainingStamps} <span className="text-white text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5">visitas</span>
-              </div>
-            </div>
-            <div className="flex flex-col items-center justify-center py-1.5">
-              <span className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] text-[#888] mb-0.5">Total</span>
-              <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold text-[#dcd0c0]">
-                {String(currentStamps).padStart(2, '0')} <span className="text-white text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5">selos</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-auto flex flex-col items-center gap-[clamp(6px,1.2vh,10px)] w-full">
-            <div className="font-space-mono text-[clamp(14px,4vw,20px)] font-bold tracking-[clamp(3px,1vw,5px)] opacity-90">
-              {cardData.cardcode}
-            </div>
-            
-            <div className="bg-white p-2 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-[clamp(80px,20vw,100px)] h-[clamp(80px,20vw,100px)] flex items-center justify-center">
-              <img 
-                src={qrCodeUrl} 
-                alt="QR Code" 
-                className="w-full h-auto mix-blend-multiply" 
-              />
-            </div>
-            
-            <div className="text-[clamp(7px,1.8vw,9px)] tracking-[1.5px] text-[#444] font-bold">
-              FIDELICARD ®
-            </div>
-          </div>
-
-        </div>
-      </div>
-    );
-  }
-
-  // DEFAULT Layout (existing)
+  // Single Layout (BARBER style) - now default for all cards
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      {/* Decorative background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl" />
-      </div>
-
-      {/* Back Button */}
-      <div className="w-full max-w-sm relative z-10 mb-4">
-        <Button
-          onClick={() => navigate("/")}
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
-      </div>
-
-      {/* Flip Card Container */}
-      <div className="flip-card w-full max-w-sm relative z-10">
-        <div className={`flip-card-inner ${isFlipped ? 'flipped' : ''}`}>
-          {/* Front of Card */}
-          <Card className={`flip-card-front w-full shadow-xl overflow-hidden ${
-            cardData.rescued 
-              ? "border-gray-400/30" 
-              : "border-primary/20"
-          }`}>
-            {/* Rescued Banner */}
-            {cardData.rescued && (
-              <div className="bg-gray-500 text-white text-center py-2 px-4">
-                <div className="flex items-center justify-center gap-2">
-                  <Gift className="w-4 h-4" />
-                  <span className="font-bold text-sm">CARTÃO RESGATADO</span>
-                </div>
-              </div>
-            )}
-
-            {/* Header */}
-            <CardHeader className={`text-center pb-4 ${
-              cardData.rescued 
-                ? "bg-gray-400 text-white" 
-                : "gradient-warm text-primary-foreground"
-            }`}>
-              <div className="flex items-center justify-center gap-2">
-                <UtensilsCrossed className="w-6 h-6" />
-                <h1 className="text-xl font-bold">{companyName}</h1>
-              </div>
-              <p className={`text-sm ${cardData.rescued ? "text-white/80" : "text-primary-foreground/80"}`}>
-                {cardData.rescued ? "Cartão Utilizado" : "Fidelidade"}
-              </p>
-            </CardHeader>
-
-            <CardContent className="pt-6 pb-6">
-              {/* Title */}
-              <div className="text-center mb-6">
-                <h2 className="text-base font-semibold text-foreground leading-relaxed text-balance max-w-[280px] mx-auto">
-                  {loyaltyText}
-                </h2>
-                <p className="text-3xl font-bold text-primary mt-3">
-                  Selos: {currentStamps}
-                </p>
-              </div>
-
-              {/* QR Code */}
-              <div className="flex justify-center mb-4">
-                <div className="bg-card p-3 rounded-xl border border-border shadow-sm">
-                  <img
-                    src={qrCodeUrl}
-                    alt="QR Code do cartão"
-                    className="w-40 h-40"
-                  />
-                </div>
-              </div>
-
-              {/* External Code */}
-              <div className="text-center mb-6">
-                <span className="font-mono text-2xl font-bold text-primary tracking-widest">
-                  {cardData.cardcode}
-                </span>
-              </div>
-
-              {/* Stamps Grid */}
-              <div className="grid grid-cols-5 gap-3 mb-6">
-                {stamps.map((filled, index) => (
-                  <div
-                    key={index}
-                    className={`aspect-square rounded-xl flex items-center justify-center text-2xl transition-all duration-300 ${
-                      filled
-                        ? "bg-[hsl(var(--stamp-filled))] shadow-md"
-                        : "bg-[hsl(var(--stamp-empty))]"
-                    }`}
-                  >
-                    <span className={filled ? "stamp-pulse" : "opacity-40"}>
-                      🍽️
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Progress text */}
-              <p className="text-center text-muted-foreground text-sm mb-2">
-                {cardData.rescued
-                  ? "✅ Este cartão já foi resgatado"
-                  : cardData.completed
-                  ? "🎉 Parabéns! Você completou seu cartão!"
-                  : `Faltam ${remainingStamps} Selos para completar seu cartão!`}
-              </p>
-
-              {/* Exchange Products - hide if rescued */}
-              {exchangeProducts && !cardData.rescued && (
-                <p className="text-center text-foreground font-medium text-sm">
-                  Troque por: <span className="text-primary">{exchangeProducts}</span>
-                </p>
-              )}
-
-              {/* Flip Button */}
-              <div className="flex justify-center mt-4">
-                <Button
-                  onClick={() => setIsFlipped(true)}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Virar cartão
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Back of Card */}
-          <Card 
-            className="flip-card-back w-full shadow-xl overflow-hidden border-primary/20"
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`
-            }}
+    <div className="bg-[#e5e5e5] h-[100dvh] flex items-center justify-center p-2.5 md:bg-gradient-to-br md:from-[#1a1a1a] md:to-[#2d2d2d] font-outfit overflow-hidden">
+      <div 
+        className="w-[calc(100vw-20px)] max-w-[380px] min-w-[300px] max-h-[calc(100dvh-20px)] rounded-[35px] py-[clamp(18px,2.5vh,28px)] px-[clamp(18px,4vw,22px)] shadow-[0_40px_80px_rgba(0,0,0,0.5)] flex flex-col items-center gap-[clamp(10px,1.8vh,18px)] md:shadow-[0_50px_100px_rgba(0,0,0,0.7)] overflow-hidden"
+        style={{ backgroundColor: cardBgColor }}
+      >
+        
+        {/* Header */}
+        <header className="w-full text-center">
+          <div 
+            className="flex items-center justify-center gap-2.5 text-[clamp(22px,5.5vw,30px)] font-light tracking-tight mb-[clamp(5px,1vh,10px)]"
+            style={{ color: fontColor }}
           >
-            <div className="h-full flex flex-col items-center justify-between p-8 relative">
-              {/* Decorative pattern */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-4 left-4 w-20 h-20 border-2 border-white rounded-full" />
-                <div className="absolute bottom-4 right-4 w-32 h-32 border-2 border-white rounded-full" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-white rounded-full" />
-              </div>
-
-              {/* Company Logo or Name */}
-              <div className="relative z-10 text-center flex-1 flex flex-col items-center justify-center">
-                {companyLogo ? (
-                  <img 
-                    src={companyLogo} 
-                    alt={companyName}
-                    className="w-32 h-32 object-contain mx-auto mb-6 drop-shadow-lg"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-6">
-                    <UtensilsCrossed className="w-16 h-16 text-white" />
-                  </div>
-                )}
-                
-                <h2 className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
-                  {companyName}
-                </h2>
-                <p className="text-white/80 text-sm">
-                  Cartão Fidelidade
-                </p>
-
-                {/* Card Code */}
-                <div className="mt-6 bg-white/20 px-6 py-3 rounded-xl">
-                  <span className="font-mono text-xl font-bold text-white tracking-widest">
-                    {cardData.cardcode}
-                  </span>
-                </div>
-
-                {/* Flip Button */}
-                <Button
-                  onClick={() => setIsFlipped(false)}
-                  variant="secondary"
-                  size="sm"
-                  className="mt-6 gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Voltar
-                </Button>
-              </div>
-
-              {/* Expiration Info */}
+            <Scissors className="w-[clamp(18px,4.5vw,24px)] h-[clamp(18px,4.5vw,24px)]" style={{ color: fontColor }} />
+            <span className="font-light">{companyName.split(' ')[0]}<span className="font-extrabold">{companyName.split(' ').slice(1).join(' ') || 'Shop'}</span></span>
+          </div>
+          
+          <div className="flex flex-col items-center gap-1">
+            <div 
+              className="text-[clamp(15px,4vw,19px)] font-bold"
+              style={{ color: fontColor }}
+            >
+              {clientName}
+            </div>
+            <div 
+              className="flex flex-wrap justify-center gap-2.5 text-[clamp(10px,2.5vw,12px)] font-medium py-1 px-3 rounded-[20px]"
+              style={{ backgroundColor: `${fontColor}10`, color: `${fontColor}88` }}
+            >
+              <span>#{cardData.cardcode}</span>
               {daysRemaining !== null && (
-                <div className="relative z-10 mt-4 text-center">
-                  <div className={`px-4 py-2 rounded-lg ${
-                    daysRemaining <= 0 
-                      ? 'bg-red-500/30' 
-                      : daysRemaining <= 7 
-                        ? 'bg-yellow-500/30' 
-                        : 'bg-white/20'
-                  }`}>
-                    <p className="text-white text-sm font-medium">
-                      {daysRemaining <= 0 
-                        ? "⚠️ Cartão expirado" 
-                        : `⏰ Faltam ${daysRemaining} dias para expirar o seu cartão`
-                      }
-                    </p>
-                  </div>
-                </div>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5" /> {daysRemaining > 0 ? `${daysRemaining} dias` : 'Expirado'}
+                </span>
               )}
             </div>
-          </Card>
-        </div>
-      </div>
+          </div>
+        </header>
 
-      <p className="text-xs text-muted-foreground mt-6 text-center">
-        Mostre este QR Code ao atendente para ganhar seu selo
-      </p>
+        {/* Stamps Area */}
+        <div 
+          className="w-full rounded-[25px] p-[clamp(16px,2.5vh,28px)_14px] flex flex-col items-center shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]"
+          style={{ backgroundColor: fontColor }}
+        >
+          <div className="grid grid-cols-5 gap-[clamp(8px,1.8vh,14px)_8px] w-full justify-items-center mb-[clamp(8px,1.5vh,16px)]">
+            {stamps.map((filled, i) => (
+              <div key={i} className="stamp">
+                {getStampIcon(filled)}
+              </div>
+            ))}
+          </div>
+          <p 
+            className="text-[clamp(10px,2.5vw,12px)] font-semibold text-center tracking-wide px-2"
+            style={{ color: `${cardBgColor}99` }}
+          >
+            {loyaltyText}
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div 
+          className="w-full grid grid-cols-2 gap-3 py-[clamp(5px,1vh,8px)] border-y"
+          style={{ borderColor: `${fontColor}20` }}
+        >
+          <div 
+            className="flex flex-col items-center justify-center py-1.5 border-r"
+            style={{ borderColor: `${fontColor}20` }}
+          >
+            <span 
+              className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] mb-0.5"
+              style={{ color: `${fontColor}88` }}
+            >
+              Faltam
+            </span>
+            <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold" style={{ color: fontColor }}>
+              {remainingStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>visitas</span>
+            </div>
+          </div>
+          <div className="flex flex-col items-center justify-center py-1.5">
+            <span 
+              className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] mb-0.5"
+              style={{ color: `${fontColor}88` }}
+            >
+              Total
+            </span>
+            <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold" style={{ color: fontColor }}>
+              {String(currentStamps).padStart(2, '0')} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>selos</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-auto flex flex-col items-center gap-[clamp(6px,1.2vh,10px)] w-full">
+          <div 
+            className="font-space-mono text-[clamp(14px,4vw,20px)] font-bold tracking-[clamp(3px,1vw,5px)] opacity-90"
+            style={{ color: fontColor }}
+          >
+            {cardData.cardcode}
+          </div>
+          
+          <div className="bg-white p-2 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-[clamp(80px,20vw,100px)] h-[clamp(80px,20vw,100px)] flex items-center justify-center">
+            <img 
+              src={qrCodeUrl} 
+              alt="QR Code" 
+              className="w-full h-auto mix-blend-multiply" 
+            />
+          </div>
+          
+          <div className="text-[clamp(7px,1.8vw,9px)] tracking-[1.5px] text-[#444] font-bold">
+            FIDELICARD ®
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 };

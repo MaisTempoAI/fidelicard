@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Gift, Trash2, CreditCard } from "lucide-react";
+import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Gift, Trash2, CreditCard, Armchair, Star, Circle } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getCompanyClientsWithCards, 
@@ -62,6 +62,7 @@ interface CoCardForm {
   days: number;
   pricolour: string;
   seccolour: string;
+  icon: string;
   active: boolean;
 }
 
@@ -99,8 +100,9 @@ const Admin = () => {
     prod: "",
     stamps: 10,
     days: 365,
-    pricolour: "#FF6B35",
-    seccolour: "#F7931E",
+    pricolour: "#121212",
+    seccolour: "#dcd0c0",
+    icon: "armchair",
     active: true,
   });
 
@@ -177,8 +179,9 @@ const Admin = () => {
         prod: coCard.prod || "",
         stamps: coCard.stamps || 10,
         days: coCard.days || 365,
-        pricolour: coCard.pricolour || "#FF6B35",
-        seccolour: coCard.seccolour || "#F7931E",
+        pricolour: coCard.pricolour || "#121212",
+        seccolour: coCard.seccolour || "#dcd0c0",
+        icon: coCard.icon || "armchair",
         active: coCard.active ?? true,
       });
     } else {
@@ -188,8 +191,9 @@ const Admin = () => {
         prod: "",
         stamps: 10,
         days: 365,
-        pricolour: "#FF6B35",
-        seccolour: "#F7931E",
+        pricolour: "#121212",
+        seccolour: "#dcd0c0",
+        icon: "armchair",
         active: true,
       });
     }
@@ -215,6 +219,7 @@ const Admin = () => {
           days: coCardForm.days,
           pricolour: coCardForm.pricolour,
           seccolour: coCardForm.seccolour,
+          icon: coCardForm.icon,
           active: coCardForm.active,
         });
         if (success) {
@@ -232,6 +237,7 @@ const Admin = () => {
           days: coCardForm.days,
           pricolour: coCardForm.pricolour,
           seccolour: coCardForm.seccolour,
+          icon: coCardForm.icon,
           active: coCardForm.active,
         });
         if (coCard) {
@@ -834,45 +840,46 @@ const Admin = () => {
 
       {/* CoCard Form Modal */}
       <Dialog open={showCoCardForm} onOpenChange={setShowCoCardForm}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Gift className="w-5 h-5" />
+              <CreditCard className="w-5 h-5" />
               {coCardForm.id ? "Editar Cartão" : "Novo Cartão"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4">
+            {/* Basic Info */}
             <div className="space-y-2">
-              <Label htmlFor="cocard-name">Nome do Cartão *</Label>
+              <Label htmlFor="cocard-name">📝 Nome do Cartão *</Label>
               <Input
                 id="cocard-name"
                 value={coCardForm.name}
                 onChange={(e) => setCoCardForm({...coCardForm, name: e.target.value})}
-                placeholder="Ex: Cartão Fidelidade"
+                placeholder="Ex: Cartão Fidelidade VIP"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cocard-text">Texto do Cartão *</Label>
+              <Label htmlFor="cocard-text">📄 Texto do Cartão *</Label>
               <Textarea
                 id="cocard-text"
                 value={coCardForm.text}
                 onChange={(e) => setCoCardForm({...coCardForm, text: e.target.value})}
-                placeholder="Ex: Junte 10 carimbos e ganhe uma marmita grátis!"
+                placeholder="Ex: Junte 10 selos e ganhe um corte na faixa!"
                 rows={2}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cocard-prod">Produto de Troca</Label>
+              <Label htmlFor="cocard-prod">🎁 Produto de Troca</Label>
               <Input
                 id="cocard-prod"
                 value={coCardForm.prod}
                 onChange={(e) => setCoCardForm({...coCardForm, prod: e.target.value})}
-                placeholder="Ex: Marmita, Sorvete, Refrigerante"
+                placeholder="Ex: Corte de Cabelo, Barba"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cocard-stamps">Carimbos Necessários</Label>
+                <Label htmlFor="cocard-stamps">Selos Necessários</Label>
                 <Input
                   id="cocard-stamps"
                   type="number"
@@ -892,45 +899,118 @@ const Admin = () => {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Cores do Cartão</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex gap-2 items-center">
-                  <Input
-                    value={coCardForm.pricolour}
-                    onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
-                    placeholder="Primária"
-                    className="flex-1"
-                  />
-                  <input
-                    type="color"
-                    value={coCardForm.pricolour || "#FF6B35"}
-                    onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
-                    className="w-10 h-10 rounded border border-input cursor-pointer"
-                  />
+
+            {/* Appearance Section */}
+            <div className="pt-2 border-t border-border">
+              <Label className="text-base font-semibold mb-3 block">🎨 Aparência do Cartão</Label>
+              
+              {/* Colors */}
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Cor de Fundo (Primária)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={coCardForm.pricolour}
+                      onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
+                      placeholder="#121212"
+                      className="flex-1 font-mono"
+                    />
+                    <input
+                      type="color"
+                      value={coCardForm.pricolour || "#121212"}
+                      onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
+                      className="w-12 h-10 rounded border border-input cursor-pointer"
+                    />
+                  </div>
                 </div>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    value={coCardForm.seccolour}
-                    onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
-                    placeholder="Secundária"
-                    className="flex-1"
-                  />
-                  <input
-                    type="color"
-                    value={coCardForm.seccolour || "#F7931E"}
-                    onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
-                    className="w-10 h-10 rounded border border-input cursor-pointer"
-                  />
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Cor das Fontes (Secundária)</Label>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={coCardForm.seccolour}
+                      onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
+                      placeholder="#dcd0c0"
+                      className="flex-1 font-mono"
+                    />
+                    <input
+                      type="color"
+                      value={coCardForm.seccolour || "#dcd0c0"}
+                      onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
+                      className="w-12 h-10 rounded border border-input cursor-pointer"
+                    />
+                  </div>
                 </div>
               </div>
-              {/* Preview gradient */}
-              <div
-                className="h-12 rounded-lg mt-2"
-                style={{ background: `linear-gradient(135deg, ${coCardForm.pricolour || '#FF6B35'}, ${coCardForm.seccolour || '#F7931E'})` }}
-              />
+
+              {/* Icon Selector */}
+              <div className="space-y-2 mt-4">
+                <Label className="text-sm text-muted-foreground">Ícone dos Selos</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { value: 'armchair', label: 'Poltrona', Icon: Armchair },
+                    { value: 'star', label: 'Estrela', Icon: Star },
+                    { value: 'x', label: 'X', Icon: X },
+                    { value: 'circle', label: 'Círculo', Icon: Circle },
+                  ].map(({ value, label, Icon }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setCoCardForm({...coCardForm, icon: value})}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
+                        coCardForm.icon === value 
+                          ? 'border-primary bg-primary/10' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <Icon className="w-6 h-6" />
+                      <span className="text-xs font-medium">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card Preview */}
+              <div className="mt-4 space-y-2">
+                <Label className="text-sm text-muted-foreground">📱 Preview do Cartão</Label>
+                <div 
+                  className="rounded-2xl p-4 flex flex-col items-center gap-3"
+                  style={{ backgroundColor: coCardForm.pricolour || '#121212' }}
+                >
+                  <span 
+                    className="text-sm font-bold"
+                    style={{ color: coCardForm.seccolour || '#dcd0c0' }}
+                  >
+                    {coCardForm.name || 'Nome do Cartão'}
+                  </span>
+                  <div 
+                    className="flex gap-2 p-2 rounded-xl"
+                    style={{ backgroundColor: coCardForm.seccolour || '#dcd0c0' }}
+                  >
+                    {[...Array(5)].map((_, i) => {
+                      const IconComponent = coCardForm.icon === 'star' ? Star 
+                        : coCardForm.icon === 'x' ? X 
+                        : coCardForm.icon === 'circle' ? Circle 
+                        : Armchair;
+                      return (
+                        <IconComponent 
+                          key={i} 
+                          className="w-5 h-5" 
+                          style={{ color: i < 3 ? coCardForm.pricolour || '#121212' : '#a89f91', opacity: i < 3 ? 1 : 0.4 }}
+                        />
+                      );
+                    })}
+                  </div>
+                  <span 
+                    className="text-xs text-center max-w-[200px]"
+                    style={{ color: `${coCardForm.seccolour || '#dcd0c0'}99` }}
+                  >
+                    {coCardForm.text || 'Texto do cartão aqui...'}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
+
+            <div className="flex items-center justify-between pt-2 border-t border-border">
               <Label htmlFor="cocard-active">Cartão Ativo</Label>
               <Switch
                 id="cocard-active"
@@ -945,7 +1025,7 @@ const Admin = () => {
             </Button>
             <Button onClick={handleSaveCoCard} disabled={savingCoCard} className="gradient-warm">
               {savingCoCard ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {coCardForm.id ? "Salvar" : "Criar Cartão"}
+              {coCardForm.id ? "💾 Salvar" : "✨ Criar Cartão"}
             </Button>
           </DialogFooter>
         </DialogContent>
