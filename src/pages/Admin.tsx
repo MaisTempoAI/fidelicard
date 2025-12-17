@@ -41,6 +41,7 @@ interface EditingClient {
   phone: string;
   cardcode: string;
   custamp: number;
+  reqstamp: number;
   completed: boolean;
 }
 
@@ -332,6 +333,7 @@ const Admin = () => {
       phone: client.phone || "",
       cardcode: client.cardcode || "",
       custamp: client.custamp || 0,
+      reqstamp: client.reqstamp || requiredStamps,
       completed: client.completed || false,
     });
   };
@@ -341,6 +343,9 @@ const Admin = () => {
     
     setSaving(true);
     try {
+      // Auto-complete if stamps >= required
+      const isCompleted = editingClient.custamp >= editingClient.reqstamp;
+      
       const { success, error } = await updateClientAndCard(
         editingClient.cardId,
         {
@@ -348,7 +353,7 @@ const Admin = () => {
           phone: editingClient.phone,
           cardcode: editingClient.cardcode,
           custamp: editingClient.custamp,
-          completed: editingClient.completed,
+          completed: isCompleted,
         }
       );
       
