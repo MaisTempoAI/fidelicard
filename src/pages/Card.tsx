@@ -194,7 +194,7 @@ const CardPage = () => {
   const daysRemaining = calculateDaysRemaining();
 
   const stamps = Array.from({ length: requiredStamps }, (_, i) => i < currentStamps);
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${cardData.cardcode}`;
 
   // Single Layout (BARBER style) - now default for all cards
   return (
@@ -300,7 +300,7 @@ const CardPage = () => {
             <img 
               src={qrCodeUrl} 
               alt="QR Code" 
-              className="w-full h-auto mix-blend-multiply" 
+              className="w-full h-auto" 
             />
           </div>
           
