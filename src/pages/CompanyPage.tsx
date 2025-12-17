@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { UtensilsCrossed, Loader2, ArrowLeft, Settings } from "lucide-react";
+import { Loader2, ArrowLeft, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { getCompanyByIdOrSlug } from "@/hooks/useLoyalty";
+import { getFirstActiveCoCardColors, CompanyColors } from "@/hooks/useCoCards";
 
 interface CompanyData {
   id: number;
@@ -21,6 +21,7 @@ const CompanyPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCompany, setIsLoadingCompany] = useState(true);
   const [company, setCompany] = useState<CompanyData | null>(null);
+  const [colors, setColors] = useState<CompanyColors>({ bgColor: '#121212', fontColor: '#dcd0c0' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,6 +45,10 @@ const CompanyPage = () => {
           loyaltystamps: data.loyaltystamps,
           elogo: data.elogo,
         });
+
+        // Fetch colors from first active CoCard
+        const companyColors = await getFirstActiveCoCardColors(data.id);
+        setColors(companyColors);
       } catch (error) {
         console.error("Error fetching company:", error);
         toast.error("Erro ao carregar empresa");
@@ -89,9 +94,12 @@ const CompanyPage = () => {
 
   if (isLoadingCompany) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-muted-foreground mt-4">Carregando...</p>
+      <div 
+        className="min-h-[100dvh] flex flex-col items-center justify-center p-4"
+        style={{ backgroundColor: colors.bgColor }}
+      >
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: colors.fontColor }} />
+        <p className="mt-4 font-light" style={{ color: colors.fontColor, opacity: 0.6 }}>Carregando...</p>
       </div>
     );
   }
@@ -100,20 +108,19 @@ const CompanyPage = () => {
     return null;
   }
 
-  const loyaltyText = company.loyaltytext || "Junte 10 carimbos e ganhe um almoço grátis!";
+  const loyaltyText = company.loyaltytext || "Junte 10 selos e ganhe um prêmio!";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      {/* Decorative background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
-      </div>
-
+    <div 
+      className="min-h-[100dvh] flex flex-col items-center justify-center px-6 py-8 overflow-hidden"
+      style={{ backgroundColor: colors.bgColor }}
+    >
       {/* Back button */}
       <Button
         variant="ghost"
         size="sm"
-        className="absolute top-4 left-4 z-20 text-muted-foreground hover:text-foreground"
+        className="absolute top-4 left-4 z-20 hover:bg-transparent"
+        style={{ color: colors.fontColor, opacity: 0.7 }}
         onClick={() => navigate("/")}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -124,76 +131,123 @@ const CompanyPage = () => {
       <Button
         variant="ghost"
         size="sm"
-        className="absolute top-4 right-4 z-20 text-muted-foreground hover:text-foreground"
+        className="absolute top-4 right-4 z-20 hover:bg-transparent"
+        style={{ color: colors.fontColor, opacity: 0.7 }}
         onClick={() => navigate("/admin")}
       >
         <Settings className="w-4 h-4 mr-2" />
         Admin
       </Button>
 
-      <Card className="w-full max-w-md relative z-10 border-primary/20 shadow-xl">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-20 h-20 rounded-full gradient-warm flex items-center justify-center mb-4 shadow-lg">
-            {company.elogo ? (
-              <img
-                src={company.elogo}
-                alt={company.name || "Logo"}
-                className="w-14 h-14 rounded-full object-cover"
-              />
-            ) : (
-              <UtensilsCrossed className="w-10 h-10 text-primary-foreground" />
-            )}
+      {/* Logo */}
+      <div className="mb-6">
+        {company.elogo ? (
+          <img
+            src={company.elogo}
+            alt={company.name || "Logo"}
+            className="w-[clamp(60px,15vw,80px)] h-[clamp(60px,15vw,80px)] rounded-full object-cover"
+            style={{ border: `2px solid ${colors.fontColor}20` }}
+          />
+        ) : (
+          <div 
+            className="w-[clamp(60px,15vw,80px)] h-[clamp(60px,15vw,80px)] rounded-full flex items-center justify-center"
+            style={{ backgroundColor: colors.fontColor, color: colors.bgColor }}
+          >
+            <span className="text-[clamp(24px,6vw,32px)] font-bold">{company.name?.charAt(0) || "E"}</span>
           </div>
-          <h1 className="text-3xl font-bold text-foreground">{company.name || "Empresa"}</h1>
-          <p className="text-muted-foreground mt-2">Programa de Fidelidade</p>
-        </CardHeader>
+        )}
+      </div>
 
-        <CardContent className="pt-6">
-          <div className="text-center mb-6">
-            <p className="text-foreground font-medium">{loyaltyText}</p>
-          </div>
+      {/* Company Name */}
+      <h1 
+        className="text-[clamp(24px,6vw,36px)] font-light tracking-tight text-center mb-1"
+        style={{ color: colors.fontColor, fontFamily: "'Playfair Display', serif" }}
+      >
+        {company.name || "Empresa"}
+      </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-medium text-foreground">
-                Seu número de telefone
-              </label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="(00) 00000-0000"
-                value={phone}
-                onChange={handlePhoneChange}
-                maxLength={16}
-                className="text-center text-lg h-12 border-primary/30 focus:border-primary"
-                disabled={isLoading}
-              />
-            </div>
+      {/* Subtitle */}
+      <p 
+        className="text-[clamp(12px,3vw,14px)] font-light tracking-[1.5px] uppercase mb-8"
+        style={{ color: colors.fontColor, opacity: 0.5 }}
+      >
+        Programa de Fidelidade
+      </p>
 
-            <Button
-              type="submit"
-              className="w-full h-12 text-lg gradient-warm hover:opacity-90 transition-opacity"
-              disabled={!isValidPhone || isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Carregando...
-                </>
-              ) : (
-                "Acessar Meu Cartão"
-              )}
-            </Button>
-          </form>
+      {/* Separator */}
+      <div 
+        className="w-16 h-[1px] mb-8"
+        style={{ backgroundColor: colors.fontColor, opacity: 0.2 }}
+      />
 
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            Se você ainda não tem um cartão, criaremos um automaticamente.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Loyalty Text */}
+      <p 
+        className="text-[clamp(14px,3.5vw,16px)] text-center font-light mb-10 max-w-[280px] leading-relaxed"
+        style={{ color: colors.fontColor, opacity: 0.8 }}
+      >
+        {loyaltyText}
+      </p>
 
-      <p className="text-xs text-muted-foreground mt-8 text-center">
-        Cartão Fidelidade Digital • {company.name}
+      {/* Phone Form */}
+      <form onSubmit={handleSubmit} className="w-full max-w-[280px] space-y-4">
+        <div className="space-y-2">
+          <label 
+            htmlFor="phone" 
+            className="text-[clamp(11px,2.8vw,12px)] font-medium tracking-wide uppercase block text-center"
+            style={{ color: colors.fontColor, opacity: 0.6 }}
+          >
+            Seu número de telefone
+          </label>
+          <Input
+            id="phone"
+            type="tel"
+            placeholder="(00) 00000-0000"
+            value={phone}
+            onChange={handlePhoneChange}
+            maxLength={16}
+            disabled={isLoading}
+            className="text-center text-[clamp(16px,4vw,18px)] h-14 border-0 rounded-2xl font-light"
+            style={{ 
+              backgroundColor: colors.fontColor, 
+              color: colors.bgColor,
+            }}
+          />
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full h-14 text-[clamp(14px,3.5vw,16px)] font-medium rounded-2xl border-0 transition-opacity hover:opacity-90"
+          style={{ 
+            backgroundColor: colors.fontColor, 
+            color: colors.bgColor,
+          }}
+          disabled={!isValidPhone || isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Carregando...
+            </>
+          ) : (
+            "Acessar Meu Cartão"
+          )}
+        </Button>
+      </form>
+
+      {/* Help text */}
+      <p 
+        className="text-[clamp(10px,2.5vw,11px)] text-center mt-6 font-light"
+        style={{ color: colors.fontColor, opacity: 0.4 }}
+      >
+        Se você ainda não tem um cartão, criaremos um automaticamente.
+      </p>
+
+      {/* Footer */}
+      <p 
+        className="absolute bottom-6 text-[clamp(9px,2.2vw,10px)] tracking-[1.5px] uppercase font-light"
+        style={{ color: colors.fontColor, opacity: 0.3 }}
+      >
+        FIDELICARD ®
       </p>
     </div>
   );

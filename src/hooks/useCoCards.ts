@@ -16,6 +16,30 @@ export interface CoCard {
   created_at: string;
 }
 
+export interface CompanyColors {
+  bgColor: string;
+  fontColor: string;
+}
+
+// Get colors from first active CoCard for a company
+export const getFirstActiveCoCardColors = async (companyId: number): Promise<CompanyColors> => {
+  const companyUuid = companyIdToUuid(companyId);
+
+  const { data } = await supabase
+    .from("CRF-CoCards")
+    .select("pricolour, seccolour")
+    .eq("company", companyUuid)
+    .eq("active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .single();
+
+  return {
+    bgColor: data?.pricolour || '#121212',
+    fontColor: data?.seccolour || '#dcd0c0'
+  };
+};
+
 // Convert company ID to a valid UUID format
 const companyIdToUuid = (companyId: number): string => {
   return `00000000-0000-0000-0000-${companyId.toString().padStart(12, '0')}`;
