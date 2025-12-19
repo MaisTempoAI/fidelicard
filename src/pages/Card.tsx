@@ -166,12 +166,12 @@ const CardPage = () => {
   const cardIcon = coCardData?.icon || "armchair";
   const companyLogo = companyData?.elogo;
 
-  // Helper function to get the stamp icon component
+  // Helper function to get the stamp icon component - always black stamps on light background
   const getStampIcon = (filled: boolean) => {
     const baseClass = `w-[clamp(22px,5vw,28px)] h-[clamp(22px,5vw,28px)] transition-transform duration-200`;
     const colorStyle = filled 
-      ? { color: cardBgColor }
-      : { color: '#a89f91', opacity: 0.35 };
+      ? { color: '#1a1a1a' }  // Fixed black for filled stamps
+      : { color: '#d1d1d1' }; // Fixed light gray for empty stamps
     const scaleClass = filled ? 'scale-110' : '';
 
     switch (cardIcon) {
@@ -241,10 +241,10 @@ const CardPage = () => {
           </div>
         </header>
 
-        {/* Stamps Area */}
+        {/* Stamps Area - Always light background with black stamps */}
         <div 
-          className="w-full rounded-[25px] p-[clamp(16px,2.5vh,28px)_14px] flex flex-col items-center shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]"
-          style={{ backgroundColor: fontColor }}
+          className="w-full rounded-[25px] p-[clamp(16px,2.5vh,28px)_14px] flex flex-col items-center shadow-[inset_0_0_40px_rgba(0,0,0,0.05)]"
+          style={{ backgroundColor: '#f5f5f5' }}
         >
           <div className="grid grid-cols-5 gap-[clamp(8px,1.8vh,14px)_8px] w-full justify-items-center mb-[clamp(8px,1.5vh,16px)]">
             {stamps.map((filled, i) => (
@@ -255,7 +255,7 @@ const CardPage = () => {
           </div>
           <p 
             className="text-[clamp(10px,2.5vw,12px)] font-semibold text-center tracking-wide px-2"
-            style={{ color: `${cardBgColor}99` }}
+            style={{ color: '#1a1a1a99' }}
           >
             {loyaltyText}
           </p>
