@@ -32,6 +32,11 @@ interface CompanyWithCard extends Company {
   coCard: CoCard | null;
 }
 
+// Convert company ID to a valid UUID format (same as useCoCards.ts)
+const companyIdToUuid = (companyId: number): string => {
+  return `00000000-0000-0000-0000-${companyId.toString().padStart(12, '0')}`;
+};
+
 const Companies = () => {
   const [companiesWithCards, setCompaniesWithCards] = useState<CompanyWithCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,10 +57,11 @@ const Companies = () => {
         // Fetch CoCards for each company
         const companiesWithCardsData: CompanyWithCard[] = await Promise.all(
           (companies || []).map(async (company) => {
+            const companyUuid = companyIdToUuid(company.id);
             const { data: coCards } = await supabase
               .from("CRF-CoCards")
               .select("*")
-              .eq("company", company.id.toString())
+              .eq("company", companyUuid)
               .eq("active", true)
               .limit(1);
 
@@ -169,7 +175,7 @@ const Companies = () => {
               <p className="text-white/60">Nenhuma empresa cadastrada.</p>
             </div>
           ) : (
-            companiesWithCards.map((company) => {
+          companiesWithCards.map((company, index) => {
               const coCard = company.coCard;
               const cardBgColor = coCard?.pricolour || company.primarycolour || "#121212";
               const fontColor = coCard?.seccolour || company.secundarycolour || "#dcd0c0";
@@ -178,8 +184,8 @@ const Companies = () => {
               const loyaltyText = coCard?.text || "Complete os selos e ganhe um brinde!";
               const companyName = company.name || "Empresa";
               
-              // Sample stamps (3 filled for demo)
-              const sampleFilledStamps = 3;
+              // Vary sample stamps for each card (2-5 filled based on index)
+              const sampleFilledStamps = 2 + (index % 4);
               const stamps = Array.from({ length: Math.min(requiredStamps, 10) }, (_, i) => i < sampleFilledStamps);
 
               return (
