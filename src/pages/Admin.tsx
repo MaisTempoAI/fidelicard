@@ -680,7 +680,7 @@ END:VCARD`;
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Selos</p>
-                            <p className="font-bold text-orange-500">
+                            <p className={`font-bold ${client.completed ? 'text-green-400' : 'text-orange-500'}`}>
                               {client.custamp || 0}
                               <span className="text-gray-400 font-normal">/{client.reqstamp || requiredStamps}</span>
                             </p>

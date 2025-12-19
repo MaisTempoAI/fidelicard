@@ -671,46 +671,51 @@ const ClientCards = () => {
             Cartões Completos ({completedCards.length})
           </h2>
           <div className="space-y-3">
-            {completedCards.map((card) => (
-              <button
-                key={card.id}
-                className="w-full p-4 rounded-2xl text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
-                style={{ 
-                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                  border: '1px solid rgba(34, 197, 94, 0.2)'
-                }}
-                onClick={() => navigate(`/card/${card.cardcode}`)}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p 
-                      className="font-mono text-[clamp(14px,3.5vw,16px)] font-bold tracking-[2px]"
-                      style={{ color: colors.fontColor }}
-                    >
-                      {card.cardcode}
-                    </p>
-                    <p 
-                      className="text-[clamp(10px,2.5vw,11px)] font-light"
-                      style={{ color: colors.fontColor, opacity: 0.5 }}
-                    >
-                      Completado em {card.completedat 
-                        ? format(new Date(card.completedat), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                        : format(new Date(card.created_at), "dd/MM/yyyy", { locale: ptBR })
-                      }
-                    </p>
+            {completedCards.map((card) => {
+              // Invert colors for completed cards
+              const completedBgColor = colors.fontColor;
+              const completedFontColor = colors.bgColor;
+              return (
+                <button
+                  key={card.id}
+                  className="w-full p-4 rounded-2xl text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
+                  style={{ 
+                    backgroundColor: completedBgColor,
+                    border: `1px solid ${completedFontColor}20`
+                  }}
+                  onClick={() => navigate(`/card/${card.cardcode}`)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p 
+                        className="font-mono text-[clamp(14px,3.5vw,16px)] font-bold tracking-[2px]"
+                        style={{ color: completedFontColor }}
+                      >
+                        {card.cardcode}
+                      </p>
+                      <p 
+                        className="text-[clamp(10px,2.5vw,11px)] font-light"
+                        style={{ color: completedFontColor, opacity: 0.6 }}
+                      >
+                        Completado em {card.completedat 
+                          ? format(new Date(card.completedat), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                          : format(new Date(card.created_at), "dd/MM/yyyy", { locale: ptBR })
+                        }
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" style={{ color: completedFontColor }} />
+                      <span 
+                        className="text-[clamp(12px,3vw,13px)] font-medium"
+                        style={{ color: completedFontColor }}
+                      >
+                        {card.reqstamp}/{card.reqstamp}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5" style={{ color: '#22c55e' }} />
-                    <span 
-                      className="text-[clamp(12px,3vw,13px)] font-medium"
-                      style={{ color: '#22c55e' }}
-                    >
-                      {card.reqstamp}/{card.reqstamp}
-                    </span>
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
