@@ -479,13 +479,6 @@ END:VCARD`;
       description: 'Dados do estabelecimento'
     },
     { 
-      id: 'settings', 
-      label: 'Configurações', 
-      icon: Settings, 
-      action: () => toast.info("Em breve"),
-      description: 'Preferências'
-    },
-    { 
       id: 'export', 
       label: 'Exportar Clientes', 
       icon: Download, 
