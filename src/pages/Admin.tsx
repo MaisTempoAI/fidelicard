@@ -1067,10 +1067,10 @@ END:VCARD`;
                           <p className="text-white font-medium truncate min-w-0">{stamp.clientName}</p>
                           {stamp.clientPhone && (
                             <a 
-                              href={`https://wa.me/55${stamp.clientPhone.replace(/\D/g, '')}`}
+                              href={`https://wa.me/55${stamp.clientPhone.replace(/\D/g, '')}?text=Mensagem`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-gray-400 hover:text-green-400 flex items-center gap-1 flex-shrink-0"
+                              className="text-sm text-green-500 font-bold flex items-center gap-1 flex-shrink-0 hover:text-green-400"
                             >
                               <Phone className="w-3 h-3" />
                               {stamp.clientPhone}
