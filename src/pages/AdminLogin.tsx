@@ -5,11 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Lock, User } from "lucide-react";
+import { ArrowLeft, Lock, User } from "lucide-react";
 import { authenticateCompany } from "@/hooks/useAdmin";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  
+  const handleBack = () => {
+    navigate("/");
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +49,16 @@ const AdminLogin = () => {
   };
 
   return (
-    <main className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4">
+    <main className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4 relative">
+      {/* Back Button */}
+      <button
+        onClick={handleBack}
+        className="absolute top-4 left-4 p-2 text-white/70 hover:text-white transition-colors"
+        aria-label="Voltar"
+      >
+        <ArrowLeft className="w-6 h-6" />
+      </button>
+      
       <Card className="w-full max-w-md bg-[#1a1a1a] border-[#2a2a2a] shadow-2xl">
         <CardHeader className="text-center space-y-4 pt-8">
           <div className="mx-auto w-16 h-16 bg-[#2a2a2a] rounded-full flex items-center justify-center">
