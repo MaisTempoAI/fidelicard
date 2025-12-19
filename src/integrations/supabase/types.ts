@@ -185,6 +185,7 @@ export type Database = {
           email: string | null
           exchangeproducts: string | null
           extcode: string | null
+          icon: string | null
           id: number
           loyaltystamps: string | null
           loyaltytext: string | null
@@ -207,6 +208,7 @@ export type Database = {
           email?: string | null
           exchangeproducts?: string | null
           extcode?: string | null
+          icon?: string | null
           id?: number
           loyaltystamps?: string | null
           loyaltytext?: string | null
@@ -229,6 +231,7 @@ export type Database = {
           email?: string | null
           exchangeproducts?: string | null
           extcode?: string | null
+          icon?: string | null
           id?: number
           loyaltystamps?: string | null
           loyaltytext?: string | null
