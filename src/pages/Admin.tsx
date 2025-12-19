@@ -574,13 +574,6 @@ END:VCARD`;
       description: 'Escanear cartão'
     },
     { 
-      id: 'clients', 
-      label: 'Clientes', 
-      icon: Users, 
-      action: () => setActiveView('clients'),
-      description: `${clients.length} cadastrados`
-    },
-    { 
       id: 'cards', 
       label: 'Gerenciar Cartões', 
       icon: CreditCard, 
@@ -643,7 +636,10 @@ END:VCARD`;
           <div className="space-y-4">
             {/* Stats Summary */}
             <div className="grid grid-cols-3 gap-3 mb-6">
-              <div className="bg-[#1a1a1a] rounded-2xl p-4 text-center">
+              <div 
+                className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+                onClick={() => setActiveView('clients')}
+              >
                 <Users className="w-5 h-5 mx-auto mb-1 text-orange-500" />
                 <p className="text-xl font-bold text-white">{clients.length}</p>
                 <p className="text-[10px] text-gray-400">Clientes</p>
