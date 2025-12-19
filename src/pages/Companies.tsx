@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ChevronRight, Settings, Phone, MapPin } from "lucide-react";
+import { Loader2, Settings, Scissors, Star, X, Circle, Armchair, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
@@ -14,24 +13,60 @@ interface Company {
   phone: string | null;
   address: string | null;
   primarycolour: string | null;
+  secundarycolour: string | null;
+}
+
+interface CoCard {
+  id: number;
+  name: string | null;
+  text: string | null;
+  pricolour: string | null;
+  seccolour: string | null;
+  stamps: number | null;
+  icon: string | null;
+  company: string | null;
+  active: boolean | null;
+}
+
+interface CompanyWithCard extends Company {
+  coCard: CoCard | null;
 }
 
 const Companies = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companiesWithCards, setCompaniesWithCards] = useState<CompanyWithCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchCompanies = async () => {
+    const fetchCompaniesAndCards = async () => {
       try {
-        const { data, error } = await supabase
+        // Fetch active companies
+        const { data: companies, error: companiesError } = await supabase
           .from("CRF-Companies")
-          .select("id, name, slug, elogo, active, phone, address, primarycolour")
+          .select("id, name, slug, elogo, active, phone, address, primarycolour, secundarycolour")
           .eq("active", true)
           .order("name");
 
-        if (error) throw error;
-        setCompanies(data || []);
+        if (companiesError) throw companiesError;
+
+        // Fetch CoCards for each company
+        const companiesWithCardsData: CompanyWithCard[] = await Promise.all(
+          (companies || []).map(async (company) => {
+            const { data: coCards } = await supabase
+              .from("CRF-CoCards")
+              .select("*")
+              .eq("company", company.id.toString())
+              .eq("active", true)
+              .limit(1);
+
+            return {
+              ...company,
+              coCard: coCards && coCards.length > 0 ? coCards[0] : null,
+            };
+          })
+        );
+
+        setCompaniesWithCards(companiesWithCardsData);
       } catch (error) {
         console.error("Error fetching companies:", error);
       } finally {
@@ -39,11 +74,31 @@ const Companies = () => {
       }
     };
 
-    fetchCompanies();
+    fetchCompaniesAndCards();
   }, []);
 
   const handleSelectCompany = (companyId: number) => {
     navigate(`/empresa/${companyId}`);
+  };
+
+  // Helper function to get the stamp icon component
+  const getStampIcon = (iconType: string, filled: boolean, bgColor: string) => {
+    const baseClass = "w-4 h-4 transition-transform duration-200";
+    const colorStyle = filled 
+      ? { color: bgColor }
+      : { color: '#a89f91', opacity: 0.35 };
+    const scaleClass = filled ? 'scale-110' : '';
+
+    switch (iconType) {
+      case 'star':
+        return <Star className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'x':
+        return <X className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'circle':
+        return <Circle className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      default:
+        return <Armchair className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+    }
   };
 
   if (isLoading) {
@@ -63,20 +118,34 @@ const Companies = () => {
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-amber-600/5 blur-3xl" />
       </div>
 
-      {/* Admin Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="absolute top-4 right-4 z-20 text-white/50 hover:text-white hover:bg-amber-500/10 transition-all"
-        onClick={() => navigate("/admin")}
-      >
-        <Settings className="w-4 h-4 mr-2" />
-        Admin
-      </Button>
+      {/* Top Buttons */}
+      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-center">
+        {/* Seja um Parceiro Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all border border-amber-500/30 hover:border-amber-500/50"
+          onClick={() => navigate("/seja-parceiro")}
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Seja um Parceiro
+        </Button>
+
+        {/* Admin Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-white/50 hover:text-white hover:bg-amber-500/10 transition-all"
+          onClick={() => navigate("/admin")}
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          Admin
+        </Button>
+      </div>
 
       <div className="w-full max-w-md relative z-10">
-        {/* Header */}
-        <div className="text-center mb-10">
+        {/* Header - with more space */}
+        <div className="text-center mb-16 mt-12">
           {/* Title with elegant typography */}
           <h1 className="text-4xl font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
             FIDELICARD
@@ -90,74 +159,82 @@ const Companies = () => {
           </div>
         </div>
 
-        {/* Companies List */}
-        <div className="space-y-4">
-          {companies.length === 0 ? (
-            <Card className="bg-[#252540] border-amber-500/20 backdrop-blur-sm">
-              <CardContent className="pt-6 text-center">
-                <p className="text-white/60">Nenhuma empresa cadastrada.</p>
-              </CardContent>
-            </Card>
+        {/* Cards List */}
+        <div className="space-y-6">
+          {companiesWithCards.length === 0 ? (
+            <div className="bg-[#252540] border border-amber-500/20 rounded-xl p-6 text-center">
+              <p className="text-white/60">Nenhuma empresa cadastrada.</p>
+            </div>
           ) : (
-            companies.map((company) => {
-              const primaryColor = company.primarycolour || "#d4a853";
+            companiesWithCards.map((company) => {
+              const coCard = company.coCard;
+              const cardBgColor = coCard?.pricolour || company.primarycolour || "#121212";
+              const fontColor = coCard?.seccolour || company.secundarycolour || "#dcd0c0";
+              const cardIcon = coCard?.icon || "armchair";
+              const requiredStamps = coCard?.stamps || 10;
+              const loyaltyText = coCard?.text || "Complete os selos e ganhe um brinde!";
+              const companyName = company.name || "Empresa";
               
+              // Sample stamps (3 filled for demo)
+              const sampleFilledStamps = 3;
+              const stamps = Array.from({ length: Math.min(requiredStamps, 10) }, (_, i) => i < sampleFilledStamps);
+
               return (
-                <Card
+                <div
                   key={company.id}
-                  className="bg-[#252540] border-amber-500/10 hover:border-amber-500/30 shadow-lg hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 cursor-pointer group overflow-hidden"
+                  className="cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl"
                   onClick={() => handleSelectCompany(company.id)}
                 >
-                  <CardContent className="p-5 flex items-center gap-4">
-                    {/* Company Logo/Icon */}
-                    <div 
-                      className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg flex-shrink-0 transition-transform duration-300 group-hover:scale-105"
-                      style={{ 
-                        background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%)`,
-                        boxShadow: `0 4px 20px ${primaryColor}30`
-                      }}
-                    >
-                      {company.elogo ? (
-                        <img
-                          src={company.elogo}
-                          alt={company.name || "Logo"}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-white font-bold text-xl" style={{ fontFamily: "'Playfair Display', serif" }}>
-                          {company.name?.charAt(0) || "?"}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Company Info */}
-                    <div className="flex-1 min-w-0">
-                      <h2 
-                        className="font-semibold text-white text-xl leading-tight"
-                        style={{ fontFamily: "'Playfair Display', serif" }}
+                  {/* Card Preview - Replica of the actual card design */}
+                  <div 
+                    className="rounded-[25px] py-5 px-5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex flex-col items-center gap-3"
+                    style={{ backgroundColor: cardBgColor }}
+                  >
+                    {/* Header */}
+                    <header className="w-full text-center">
+                      <div 
+                        className="flex items-center justify-center gap-2 text-xl font-light tracking-tight"
+                        style={{ color: fontColor }}
                       >
-                        {company.name || "Empresa"}
-                      </h2>
-                      {company.phone && (
-                        <p className="text-sm text-white/70 flex items-center gap-1.5 mt-1.5">
-                          <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span className="font-light">{company.phone}</span>
-                        </p>
-                      )}
-                      {company.address && (
-                        <p className="text-sm text-white/50 flex items-start gap-1.5 mt-1 leading-relaxed">
-                          <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                          <span className="font-light line-clamp-2">{company.address}</span>
-                        </p>
-                      )}
+                        <Scissors className="w-5 h-5" style={{ color: fontColor }} />
+                        <span className="font-light">{companyName.split(' ')[0]}<span className="font-extrabold">{companyName.split(' ').slice(1).join(' ') || ''}</span></span>
+                      </div>
+                    </header>
+
+                    {/* Stamps Area */}
+                    <div 
+                      className="w-full rounded-[18px] p-4 flex flex-col items-center shadow-[inset_0_0_30px_rgba(0,0,0,0.1)]"
+                      style={{ backgroundColor: fontColor }}
+                    >
+                      <div className="grid grid-cols-5 gap-2 w-full justify-items-center mb-2">
+                        {stamps.map((filled, i) => (
+                          <div key={i} className="stamp">
+                            {getStampIcon(cardIcon, filled, cardBgColor)}
+                          </div>
+                        ))}
+                      </div>
+                      <p 
+                        className="text-[10px] font-semibold text-center tracking-wide px-2 line-clamp-2"
+                        style={{ color: `${cardBgColor}99` }}
+                      >
+                        {loyaltyText}
+                      </p>
                     </div>
 
-                    {/* Arrow */}
-                    <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors flex-shrink-0">
-                      <ChevronRight className="w-5 h-5 text-amber-500 group-hover:translate-x-0.5 transition-transform" />
+                    {/* Footer */}
+                    <div className="flex items-center justify-between w-full px-2">
+                      <div 
+                        className="text-[9px] tracking-[1px] font-medium"
+                        style={{ color: `${fontColor}88` }}
+                      >
+                        {requiredStamps} SELOS
+                      </div>
+                      <div className="text-[7px] tracking-[1.5px] font-bold" style={{ color: `${fontColor}66` }}>
+                        FIDELICARD ®
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })
           )}

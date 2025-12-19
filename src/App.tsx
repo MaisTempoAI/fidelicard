@@ -13,6 +13,7 @@ import AddStamp from "./pages/AddStamp";
 import Scanner from "./pages/Scanner";
 import AdminRoute from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
+import BecomePartner from "./pages/BecomePartner";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Companies />} />
+          <Route path="/seja-parceiro" element={<BecomePartner />} />
           <Route path="/empresa/:companyId" element={<CompanyPage />} />
           <Route path="/empresa/:companyId/cartoes" element={<ClientCards />} />
           <Route path="/card/:code" element={<CardPage />} />
