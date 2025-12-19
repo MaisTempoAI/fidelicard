@@ -189,12 +189,12 @@ const Scanner = () => {
       });
       
       setStampAdded(true);
-      toast.success("Carimbo adicionado!", {
-        description: `${scannedCard.clientName || "Cliente"} agora tem ${newStamps}/${scannedCard.reqstamp} carimbos`
+      toast.success("Selo adicionado!", {
+        description: `${scannedCard.clientName || "Cliente"} agora tem ${newStamps}/${scannedCard.reqstamp} selos`
       });
     } catch (err) {
       console.error("Error adding stamp:", err);
-      toast.error("Erro ao adicionar carimbo");
+      toast.error("Erro ao adicionar selo");
     } finally {
       setIsAddingStamp(false);
     }
