@@ -14,7 +14,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, QrCode, Search, UtensilsCrossed, Users, LogOut, Pencil, X, Check, Loader2, Building, Gift, Trash2, CreditCard, Armchair, Star, Circle } from "lucide-react";
+import { 
+  Plus, QrCode, Search, Users, LogOut, Pencil, X, Check, Loader2, 
+  Building, Gift, Trash2, CreditCard, Armchair, Star, Circle, 
+  Settings, Download, FileText, ChevronRight 
+} from "lucide-react";
 import { toast } from "sonner";
 import { 
   getCompanyClientsWithCards, 
@@ -54,7 +58,6 @@ interface CompanyDataForm {
   loyaltytext: string;
 }
 
-
 interface CoCardForm {
   id?: number;
   name: string;
@@ -68,7 +71,10 @@ interface CoCardForm {
   active: boolean;
 }
 
+type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export';
+
 const Admin = () => {
+  const [activeView, setActiveView] = useState<ActiveView>('menu');
   const [search, setSearch] = useState("");
   const [clients, setClients] = useState<ClientWithCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +97,6 @@ const Admin = () => {
   const [savingCompany, setSavingCompany] = useState(false);
 
   // Promotions (CoCards) management
-  const [showPromotionsModal, setShowPromotionsModal] = useState(false);
   const [showCoCardForm, setShowCoCardForm] = useState(false);
   const [coCards, setCoCards] = useState<CoCard[]>([]);
   const [loadingCoCards, setLoadingCoCards] = useState(false);
@@ -108,6 +113,10 @@ const Admin = () => {
     icon: "armchair",
     active: true,
   });
+
+  // Export
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const companyId = localStorage.getItem("admin_company_id");
   const companyName = localStorage.getItem("admin_company_name") || "Minha Empresa";
@@ -151,7 +160,7 @@ const Admin = () => {
     }
   };
 
-  const handleOpenCompanyDataModal = async () => {
+  const handleOpenCompanyView = async () => {
     await loadCompanyData();
     setShowCompanyDataModal(true);
   };
@@ -169,9 +178,9 @@ const Admin = () => {
     setLoadingCoCards(false);
   };
 
-  const handleOpenPromotionsModal = async () => {
+  const handleOpenCardsView = async () => {
     await loadCoCards();
-    setShowPromotionsModal(true);
+    setActiveView('cards');
   };
 
   const handleOpenCoCardForm = (coCard?: CoCard) => {
@@ -214,7 +223,6 @@ const Admin = () => {
     setSavingCoCard(true);
     try {
       if (coCardForm.id) {
-        // Update existing
         const { success, error } = await updateCoCard(coCardForm.id, {
           name: coCardForm.name,
           text: coCardForm.text,
@@ -232,7 +240,6 @@ const Admin = () => {
           toast.error(error || "Erro ao atualizar");
         }
       } else {
-        // Create new
         const { coCard, error } = await createCoCard(parseInt(companyId), {
           name: coCardForm.name,
           text: coCardForm.text,
@@ -286,7 +293,6 @@ const Admin = () => {
     setSavingCompany(false);
   };
 
-
   const handleAddStamp = async (client: ClientWithCard) => {
     if (!client.cardId || client.completed) return;
     
@@ -302,11 +308,11 @@ const Admin = () => {
       toast.success(
         isCompleted 
           ? `Parabéns! ${client.nome || "Cliente"} completou o cartão!` 
-          : `Carimbo adicionado! ${newStamps}/${client.reqstamp || requiredStamps}`
+          : `Selo adicionado! ${newStamps}/${client.reqstamp || requiredStamps}`
       );
       await loadClients();
     } else {
-      toast.error(error || "Erro ao adicionar carimbo");
+      toast.error(error || "Erro ao adicionar selo");
     }
     
     setAddingStamp(null);
@@ -346,7 +352,6 @@ const Admin = () => {
     
     setSaving(true);
     try {
-      // Auto-complete if stamps >= required
       const isCompleted = editingClient.custamp >= editingClient.reqstamp;
       
       const { success, error } = await updateClientAndCard(
@@ -386,251 +391,331 @@ const Admin = () => {
     navigate("/admin/scanner");
   };
 
+  // Export functions
+  const exportToCSV = () => {
+    setExporting(true);
+    try {
+      const headers = ['Nome', 'Telefone', 'Código', 'Selos', 'Status'];
+      const rows = clients.map(client => [
+        client.nome || '',
+        client.phone || '',
+        client.cardcode || '',
+        `${client.custamp || 0}/${client.reqstamp || requiredStamps}`,
+        client.rescued ? 'Resgatado' : client.completed ? 'Completo' : 'Em andamento'
+      ]);
+      
+      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `clientes_${companyName}_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      toast.success("Arquivo CSV exportado!");
+    } catch (err) {
+      toast.error("Erro ao exportar CSV");
+    }
+    setExporting(false);
+    setShowExportModal(false);
+  };
+
+  const exportToVCard = () => {
+    setExporting(true);
+    try {
+      const vcards = clients.map(client => {
+        return `BEGIN:VCARD
+VERSION:3.0
+FN:${client.nome || 'Cliente'}
+TEL:${client.phone || ''}
+NOTE:Selos: ${client.custamp || 0}/${client.reqstamp || requiredStamps} - ${companyName}
+END:VCARD`;
+      }).join('\n');
+      
+      const blob = new Blob([vcards], { type: 'text/vcard;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `contatos_${companyName}_${new Date().toISOString().split('T')[0]}.vcf`;
+      link.click();
+      toast.success("Contatos exportados!");
+    } catch (err) {
+      toast.error("Erro ao exportar contatos");
+    }
+    setExporting(false);
+    setShowExportModal(false);
+  };
+
   const filteredClients = searchClients(clients, search);
   const totalStamps = clients.reduce((acc, c) => acc + (c.custamp || 0), 0);
   const completedCount = clients.filter(c => c.completed).length;
 
+  const menuItems = [
+    { 
+      id: 'qrcode', 
+      label: 'QR CODE', 
+      icon: QrCode, 
+      action: handleScanQR, 
+      primary: true,
+      description: 'Escanear cartão'
+    },
+    { 
+      id: 'clients', 
+      label: 'Clientes', 
+      icon: Users, 
+      action: () => setActiveView('clients'),
+      description: `${clients.length} cadastrados`
+    },
+    { 
+      id: 'cards', 
+      label: 'Gerenciar Cartões', 
+      icon: CreditCard, 
+      action: handleOpenCardsView,
+      description: 'Tipos de cartão'
+    },
+    { 
+      id: 'company', 
+      label: 'Editar Empresa', 
+      icon: Building, 
+      action: handleOpenCompanyView,
+      description: 'Dados do estabelecimento'
+    },
+    { 
+      id: 'settings', 
+      label: 'Configurações', 
+      icon: Settings, 
+      action: () => toast.info("Em breve"),
+      description: 'Preferências'
+    },
+    { 
+      id: 'export', 
+      label: 'Exportar Clientes', 
+      icon: Download, 
+      action: () => setShowExportModal(true),
+      description: 'CSV ou Contatos'
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen bg-[#0f0f0f] text-white">
       {/* Header */}
-      <div className="max-w-4xl mx-auto mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full gradient-warm flex items-center justify-center shadow-lg">
-              <UtensilsCrossed className="w-6 h-6 text-primary-foreground" />
+      <header className="sticky top-0 z-50 bg-[#0f0f0f]/95 backdrop-blur-sm border-b border-white/10">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {activeView !== 'menu' && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setActiveView('menu')}
+                  className="text-white hover:bg-white/10 -ml-2"
+                >
+                  <ChevronRight className="w-5 h-5 rotate-180" />
+                </Button>
+              )}
+              <div>
+                <h1 className="text-lg font-semibold text-white">{companyName}</h1>
+                <p className="text-xs text-gray-400">Painel Administrativo</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{companyName}</h1>
-              <p className="text-muted-foreground text-sm">Painel Administrativo</p>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleLogout}
+              className="text-white hover:bg-white/10"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-lg mx-auto px-4 py-6">
+        {/* Main Menu View */}
+        {activeView === 'menu' && (
+          <div className="space-y-4">
+            {/* Stats Summary */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-[#1a1a1a] rounded-2xl p-4 text-center">
+                <Users className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+                <p className="text-xl font-bold text-white">{clients.length}</p>
+                <p className="text-[10px] text-gray-400">Clientes</p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-2xl p-4 text-center">
+                <Star className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+                <p className="text-xl font-bold text-white">{totalStamps}</p>
+                <p className="text-[10px] text-gray-400">Selos</p>
+              </div>
+              <div className="bg-[#1a1a1a] rounded-2xl p-4 text-center">
+                <Gift className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+                <p className="text-xl font-bold text-white">{completedCount}</p>
+                <p className="text-[10px] text-gray-400">Completos</p>
+              </div>
+            </div>
+
+            {/* Menu Items */}
+            <div className="space-y-3">
+              {menuItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={item.action}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all active:scale-[0.98] ${
+                    item.primary 
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                      : 'bg-[#1a1a1a] hover:bg-[#252525] text-white'
+                  }`}
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    item.primary ? 'bg-white/20' : 'bg-[#252525]'
+                  }`}>
+                    <item.icon className={`w-6 h-6 ${item.primary ? 'text-white' : 'text-orange-500'}`} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-base">{item.label}</p>
+                    <p className={`text-xs ${item.primary ? 'text-white/70' : 'text-gray-400'}`}>
+                      {item.description}
+                    </p>
+                  </div>
+                  <ChevronRight className={`w-5 h-5 ${item.primary ? 'text-white/70' : 'text-gray-500'}`} />
+                </button>
+              ))}
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
+        )}
 
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Company Edit Buttons */}
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            className="border-primary/30 hover:bg-primary/10"
-            onClick={handleOpenCompanyDataModal}
-          >
-            <Building className="w-4 h-4 mr-2" />
-            Editar Dados Empresa
-          </Button>
-          <Button
-            variant="outline"
-            className="border-primary/30 hover:bg-primary/10"
-            onClick={handleOpenPromotionsModal}
-          >
-            <CreditCard className="w-4 h-4 mr-2" />
-            Gerenciar Cartões
-          </Button>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-primary/20">
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-3">
-                <Users className="w-8 h-8 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{clients.length}</p>
-                  <p className="text-xs text-muted-foreground">Clientes</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/20">
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">🍽️</span>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{totalStamps}</p>
-                  <p className="text-xs text-muted-foreground">Carimbos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/20">
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">🎉</span>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{completedCount}</p>
-                  <p className="text-xs text-muted-foreground">Completos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/20">
-            <CardContent className="pt-4 pb-4">
-              <Button
-                onClick={handleScanQR}
-                className="w-full h-16 text-lg font-bold gradient-warm hover:opacity-90"
-              >
-                <QrCode className="w-6 h-6 mr-2" />
-                QR CODE
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Customers List */}
-        <Card className="border-primary/20">
-          <CardHeader className="pb-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <CardTitle className="text-lg">Clientes</CardTitle>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por telefone ou código..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 w-full md:w-64 border-primary/30"
-                />
-              </div>
+        {/* Clients View */}
+        {activeView === 'clients' && (
+          <div className="space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Buscar por telefone ou código..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 bg-[#1a1a1a] border-0 text-white placeholder:text-gray-500 h-12 rounded-xl"
+              />
             </div>
-          </CardHeader>
-          <CardContent>
+
+            {/* Client List */}
             {loading ? (
-              <p className="text-center text-muted-foreground py-8">Carregando...</p>
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-500" />
+                <p className="text-gray-400 mt-2">Carregando...</p>
+              </div>
             ) : filteredClients.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                {search ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
-              </p>
+              <div className="text-center py-12">
+                <Users className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+                <p className="text-gray-400">
+                  {search ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
+                </p>
+              </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredClients.map((client) => (
-                  <Card key={client.clientId} className="border-border/50 bg-muted/30">
-                    <CardContent className="p-4">
-                      {editingClient?.cardId === client.cardId ? (
-                        // Edit mode
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
-                              <Input
-                                value={editingClient.nome}
-                                onChange={(e) => setEditingClient({...editingClient, nome: e.target.value})}
-                                placeholder="Nome do cliente"
-                                className="border-primary/30"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground mb-1 block">Telefone</label>
-                              <Input
-                                value={editingClient.phone}
-                                onChange={(e) => setEditingClient({...editingClient, phone: e.target.value})}
-                                placeholder="Telefone"
-                                className="border-primary/30"
-                              />
-                            </div>
+                  <div 
+                    key={client.clientId} 
+                    className="bg-[#1a1a1a] rounded-2xl p-4"
+                  >
+                    {editingClient?.cardId === client.cardId ? (
+                      // Edit mode
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] text-gray-400 mb-1 block">Nome</label>
+                            <Input
+                              value={editingClient.nome}
+                              onChange={(e) => setEditingClient({...editingClient, nome: e.target.value})}
+                              className="bg-[#252525] border-0 text-white h-10 rounded-xl"
+                            />
                           </div>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div>
-                              <label className="text-xs text-muted-foreground mb-1 block">Código</label>
-                              <Input
-                                value={editingClient.cardcode}
-                                onChange={(e) => setEditingClient({...editingClient, cardcode: e.target.value.toUpperCase()})}
-                                placeholder="Código"
-                                className="border-primary/30 font-mono"
-                                maxLength={6}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground mb-1 block">Carimbos</label>
-                              <Input
-                                type="number"
-                                value={editingClient.custamp}
-                                onChange={(e) => setEditingClient({...editingClient, custamp: parseInt(e.target.value) || 0})}
-                                className="border-primary/30"
-                                min={0}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground mb-1 block">Status</label>
-                              <select
-                                value={editingClient.completed ? "completed" : "pending"}
-                                onChange={(e) => setEditingClient({...editingClient, completed: e.target.value === "completed"})}
-                                className="w-full h-10 px-3 rounded-md border border-primary/30 bg-background text-foreground"
-                              >
-                                <option value="pending">Em andamento</option>
-                                <option value="completed">Completo</option>
-                              </select>
-                            </div>
-                          </div>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditingClient(null)}
-                              disabled={saving}
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              Cancelar
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={handleSaveEdit}
-                              disabled={saving}
-                              className="gradient-warm"
-                            >
-                              {saving ? (
-                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              ) : (
-                                <Check className="w-4 h-4 mr-1" />
-                              )}
-                              Salvar
-                            </Button>
+                          <div>
+                            <label className="text-[10px] text-gray-400 mb-1 block">Telefone</label>
+                            <Input
+                              value={editingClient.phone}
+                              onChange={(e) => setEditingClient({...editingClient, phone: e.target.value})}
+                              className="bg-[#252525] border-0 text-white h-10 rounded-xl"
+                            />
                           </div>
                         </div>
-                      ) : (
-                        // View mode
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Nome</p>
-                              <p className="font-medium text-foreground">{client.nome || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Telefone</p>
-                              <p className="text-foreground">{client.phone || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Código</p>
-                              <p className="font-mono text-sm text-foreground">{client.cardcode || "-"}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Carimbos</p>
-                              <p className="text-foreground">
-                                <span className="font-bold text-primary text-lg">{client.custamp || 0}</span>
-                                <span className="text-muted-foreground">/{client.reqstamp || requiredStamps}</span>
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Status</p>
-                              {client.rescued ? (
-                                <Badge className="bg-purple-500/20 text-purple-700 hover:bg-purple-500/30">
-                                  Resgatado
-                                </Badge>
-                              ) : client.completed ? (
-                                <Badge className="bg-green-500/20 text-green-700 hover:bg-green-500/30">
-                                  Completo
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">Em andamento</Badge>
-                              )}
-                            </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] text-gray-400 mb-1 block">Código</label>
+                            <Input
+                              value={editingClient.cardcode}
+                              onChange={(e) => setEditingClient({...editingClient, cardcode: e.target.value.toUpperCase()})}
+                              className="bg-[#252525] border-0 text-white h-10 rounded-xl font-mono"
+                              maxLength={6}
+                            />
                           </div>
-                          <div className="flex gap-2 shrink-0">
+                          <div>
+                            <label className="text-[10px] text-gray-400 mb-1 block">Selos</label>
+                            <Input
+                              type="number"
+                              value={editingClient.custamp}
+                              onChange={(e) => setEditingClient({...editingClient, custamp: parseInt(e.target.value) || 0})}
+                              className="bg-[#252525] border-0 text-white h-10 rounded-xl"
+                              min={0}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingClient(null)}
+                            disabled={saving}
+                            className="flex-1 text-gray-400 hover:text-white hover:bg-white/10"
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveEdit}
+                            disabled={saving}
+                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                          >
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View mode
+                      <div>
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-medium text-white">{client.nome || "Sem nome"}</p>
+                            <p className="text-sm text-gray-400">{client.phone || "-"}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500 mb-1">Selos</p>
+                            <p className="font-bold text-orange-500">
+                              {client.custamp || 0}
+                              <span className="text-gray-400 font-normal">/{client.reqstamp || requiredStamps}</span>
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-gray-500">{client.cardcode || "-"}</span>
+                            {client.rescued ? (
+                              <Badge className="bg-purple-500/20 text-purple-400 border-0 text-[10px]">
+                                Resgatado
+                              </Badge>
+                            ) : client.completed ? (
+                              <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">
+                                Completo
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-gray-500/20 text-gray-400 border-0 text-[10px]">
+                                Em andamento
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="flex gap-2">
                             <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-primary/50 hover:bg-primary/10"
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 text-gray-400 hover:text-white hover:bg-white/10"
                               onClick={() => handleEditClick(client)}
                             >
                               <Pencil className="w-4 h-4" />
@@ -638,7 +723,7 @@ const Admin = () => {
                             {client.completed && !client.rescued ? (
                               <Button
                                 size="sm"
-                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                                className="bg-purple-600 hover:bg-purple-700 text-white h-9 px-3"
                                 onClick={() => handleRescueCard(client)}
                                 disabled={rescuing === client.cardId}
                               >
@@ -647,15 +732,14 @@ const Admin = () => {
                                 ) : (
                                   <>
                                     <Gift className="w-4 h-4 mr-1" />
-                                    RESGATAR
+                                    Resgatar
                                   </>
                                 )}
                               </Button>
                             ) : !client.rescued ? (
                               <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-primary/50 hover:bg-primary hover:text-primary-foreground"
+                                size="icon"
+                                className="h-9 w-9 bg-orange-500 hover:bg-orange-600 text-white"
                                 onClick={() => handleAddStamp(client)}
                                 disabled={addingStamp === client.cardId}
                               >
@@ -668,177 +752,78 @@ const Admin = () => {
                             ) : null}
                           </div>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Company Data Modal */}
-      <Dialog open={showCompanyDataModal} onOpenChange={setShowCompanyDataModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building className="w-5 h-5" />
-              Editar Dados da Empresa
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="company-name">Nome</Label>
-              <Input
-                id="company-name"
-                value={companyDataForm.name}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, name: e.target.value})}
-                placeholder="Nome da empresa"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-phone">Telefone</Label>
-              <Input
-                id="company-phone"
-                value={companyDataForm.phone}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, phone: e.target.value})}
-                placeholder="Telefone"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-email">Email</Label>
-              <Input
-                id="company-email"
-                type="email"
-                value={companyDataForm.email}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, email: e.target.value})}
-                placeholder="Email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-address">Endereço</Label>
-              <Input
-                id="company-address"
-                value={companyDataForm.address}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, address: e.target.value})}
-                placeholder="Endereço"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-urlsite">Link Personalizado</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground whitespace-nowrap">/empresa/</span>
-                <Input
-                  id="company-urlsite"
-                  value={companyDataForm.urlsite}
-                  onChange={(e) => setCompanyDataForm({
-                    ...companyDataForm, 
-                    urlsite: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '')
-                  })}
-                  placeholder="BARBER_RODRI"
-                  className="uppercase"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                URL final: {window.location.origin}/empresa/{companyDataForm.urlsite || '[seu-link]'}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-loyaltytext">Texto de Apresentação</Label>
-              <Textarea
-                id="company-loyaltytext"
-                value={companyDataForm.loyaltytext}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, loyaltytext: e.target.value})}
-                placeholder="Junte 10 selos e ganhe um prêmio!"
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground">
-                Este texto será exibido na página inicial da sua empresa
-              </p>
-            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCompanyDataModal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveCompanyData} disabled={savingCompany} className="gradient-warm">
-              {savingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
 
-
-      {/* Cartões (CoCards) Modal */}
-      <Dialog open={showPromotionsModal} onOpenChange={setShowPromotionsModal}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Gerenciar Cartões
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+        {/* Cards Management View */}
+        {activeView === 'cards' && (
+          <div className="space-y-4">
             <Button
               onClick={() => handleOpenCoCardForm()}
-              className="w-full gradient-warm"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white h-12 rounded-xl"
             >
               <Plus className="w-4 h-4 mr-2" />
-              + Novo Cartão
+              Novo Cartão
             </Button>
 
             {loadingCoCards ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-                <p className="text-sm text-muted-foreground mt-2">Carregando cartões...</p>
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-500" />
+                <p className="text-gray-400 mt-2">Carregando cartões...</p>
               </div>
             ) : coCards.length === 0 ? (
-              <div className="text-center py-8">
-                <Gift className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Nenhum cartão cadastrado</p>
-                <p className="text-xs text-muted-foreground">Crie seu primeiro cartão para começar</p>
+              <div className="text-center py-12">
+                <CreditCard className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+                <p className="text-gray-400">Nenhum cartão cadastrado</p>
+                <p className="text-xs text-gray-500">Crie seu primeiro cartão</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {coCards.map((coCard) => (
-                  <Card key={coCard.id} className="border-border/50 overflow-hidden">
+                  <div 
+                    key={coCard.id} 
+                    className="bg-[#1a1a1a] rounded-2xl overflow-hidden"
+                  >
                     <div
-                      className="h-3"
+                      className="h-2"
                       style={{ background: `linear-gradient(135deg, ${coCard.pricolour || '#FF6B35'}, ${coCard.seccolour || '#F7931E'})` }}
                     />
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between gap-4">
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="font-bold text-lg text-foreground">{coCard.name}</span>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-white">{coCard.name}</span>
                             {coCard.active ? (
-                              <Badge className="bg-green-500/20 text-green-700">Ativo</Badge>
+                              <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">Ativo</Badge>
                             ) : (
-                              <Badge variant="secondary">Inativo</Badge>
+                              <Badge className="bg-gray-500/20 text-gray-400 border-0 text-[10px]">Inativo</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{coCard.text}</p>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="bg-muted px-3 py-1 rounded-full text-sm font-medium">{coCard.stamps} carimbos</span>
-                            <span className="bg-muted px-3 py-1 rounded-full text-sm font-medium">{coCard.days} dias</span>
-                            {coCard.prod && <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">{coCard.prod}</span>}
+                          <p className="text-sm text-gray-400 line-clamp-1 mb-2">{coCard.text}</p>
+                          <div className="flex gap-2">
+                            <span className="bg-[#252525] px-2 py-1 rounded-lg text-xs text-gray-300">{coCard.stamps} selos</span>
+                            <span className="bg-[#252525] px-2 py-1 rounded-lg text-xs text-gray-300">{coCard.days} dias</span>
                           </div>
                         </div>
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex gap-2">
                           <Button
                             size="icon"
-                            variant="outline"
-                            className="h-10 w-10"
+                            variant="ghost"
+                            className="h-9 w-9 text-gray-400 hover:text-white hover:bg-white/10"
                             onClick={() => handleOpenCoCardForm(coCard)}
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
                           <Button
                             size="icon"
-                            variant="outline"
-                            className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            variant="ghost"
+                            className="h-9 w-9 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                             onClick={() => handleDeleteCoCard(coCard.id)}
                             disabled={deletingCoCard === coCard.id}
                           >
@@ -850,203 +835,335 @@ const Admin = () => {
                           </Button>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </div>
+        )}
+      </main>
+
+      {/* Export Modal */}
+      <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+        <DialogContent className="sm:max-w-sm bg-[#1a1a1a] border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">Exportar Clientes</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <button
+              onClick={exportToCSV}
+              disabled={exporting}
+              className="w-full flex items-center gap-4 p-4 rounded-xl bg-[#252525] hover:bg-[#2a2a2a] transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-green-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-white">Arquivo CSV</p>
+                <p className="text-xs text-gray-400">Planilha para Excel/Sheets</p>
+              </div>
+            </button>
+            <button
+              onClick={exportToVCard}
+              disabled={exporting}
+              className="w-full flex items-center gap-4 p-4 rounded-xl bg-[#252525] hover:bg-[#2a2a2a] transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-white">Contatos (VCF)</p>
+                <p className="text-xs text-gray-400">Importar nos contatos do telefone</p>
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Company Data Modal */}
+      <Dialog open={showCompanyDataModal} onOpenChange={setShowCompanyDataModal}>
+        <DialogContent className="sm:max-w-md bg-[#1a1a1a] border-white/10 text-white max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Building className="w-5 h-5" />
+              Editar Dados da Empresa
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300">Nome</Label>
+              <Input
+                value={companyDataForm.name}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, name: e.target.value})}
+                placeholder="Nome da empresa"
+                className="bg-[#252525] border-0 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">Telefone</Label>
+              <Input
+                value={companyDataForm.phone}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, phone: e.target.value})}
+                placeholder="Telefone"
+                className="bg-[#252525] border-0 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">Email</Label>
+              <Input
+                type="email"
+                value={companyDataForm.email}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, email: e.target.value})}
+                placeholder="Email"
+                className="bg-[#252525] border-0 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">Endereço</Label>
+              <Input
+                value={companyDataForm.address}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, address: e.target.value})}
+                placeholder="Endereço"
+                className="bg-[#252525] border-0 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">Link Personalizado</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 whitespace-nowrap">/empresa/</span>
+                <Input
+                  value={companyDataForm.urlsite}
+                  onChange={(e) => setCompanyDataForm({
+                    ...companyDataForm, 
+                    urlsite: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '')
+                  })}
+                  placeholder="NOME"
+                  className="bg-[#252525] border-0 text-white uppercase"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300">Texto de Apresentação</Label>
+              <Textarea
+                value={companyDataForm.loyaltytext}
+                onChange={(e) => setCompanyDataForm({...companyDataForm, loyaltytext: e.target.value})}
+                placeholder="Junte 10 selos e ganhe um prêmio!"
+                rows={3}
+                className="bg-[#252525] border-0 text-white resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="ghost" 
+              onClick={() => setShowCompanyDataModal(false)}
+              className="text-gray-400 hover:text-white hover:bg-white/10"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSaveCompanyData} 
+              disabled={savingCompany} 
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              {savingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* CoCard Form Modal */}
       <Dialog open={showCoCardForm} onOpenChange={setShowCoCardForm}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-[#1a1a1a] border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-white">
               <CreditCard className="w-5 h-5" />
               {coCardForm.id ? "Editar Cartão" : "Novo Cartão"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 py-4">
-            {/* Basic Info */}
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="cocard-name">📝 Nome do Cartão *</Label>
+              <Label className="text-gray-300">Nome do Cartão</Label>
               <Input
-                id="cocard-name"
                 value={coCardForm.name}
                 onChange={(e) => setCoCardForm({...coCardForm, name: e.target.value})}
                 placeholder="Ex: Cartão Fidelidade VIP"
+                className="bg-[#252525] border-0 text-white"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cocard-text">📄 Texto do Cartão *</Label>
+              <Label className="text-gray-300">Texto do Cartão</Label>
               <Textarea
-                id="cocard-text"
                 value={coCardForm.text}
                 onChange={(e) => setCoCardForm({...coCardForm, text: e.target.value})}
                 placeholder="Ex: Junte 10 selos e ganhe um corte na faixa!"
                 rows={2}
+                className="bg-[#252525] border-0 text-white resize-none"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cocard-prod">🎁 Produto de Troca</Label>
+              <Label className="text-gray-300">Produto de Troca</Label>
               <Input
-                id="cocard-prod"
                 value={coCardForm.prod}
                 onChange={(e) => setCoCardForm({...coCardForm, prod: e.target.value})}
-                placeholder="Ex: Corte de Cabelo, Barba"
+                placeholder="Ex: Corte de Cabelo"
+                className="bg-[#252525] border-0 text-white"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cocard-stamps">Selos Necessários</Label>
+                <Label className="text-gray-300">Selos Necessários</Label>
                 <Input
-                  id="cocard-stamps"
                   type="number"
                   value={coCardForm.stamps}
                   onChange={(e) => setCoCardForm({...coCardForm, stamps: parseInt(e.target.value) || 10})}
                   min={1}
+                  className="bg-[#252525] border-0 text-white"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cocard-days">Validade (dias)</Label>
+                <Label className="text-gray-300">Validade (dias)</Label>
                 <Input
-                  id="cocard-days"
                   type="number"
                   value={coCardForm.days}
                   onChange={(e) => setCoCardForm({...coCardForm, days: parseInt(e.target.value) || 365})}
                   min={1}
+                  className="bg-[#252525] border-0 text-white"
                 />
               </div>
             </div>
 
-            {/* Appearance Section */}
-            <div className="pt-2 border-t border-border">
-              <Label className="text-base font-semibold mb-3 block">🎨 Aparência do Cartão</Label>
-              
-              {/* Colors */}
-              <div className="space-y-3">
+            {/* Colors */}
+            <div className="pt-4 border-t border-white/10">
+              <Label className="text-gray-300 mb-3 block">Cores do Cartão</Label>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">Cor de Fundo (Primária)</Label>
-                  <div className="flex gap-2 items-center">
+                  <Label className="text-xs text-gray-500">Cor de Fundo</Label>
+                  <div className="flex gap-2">
                     <Input
                       value={coCardForm.pricolour}
                       onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
-                      placeholder="#121212"
-                      className="flex-1 font-mono"
+                      className="bg-[#252525] border-0 text-white flex-1 font-mono text-xs"
                     />
                     <input
                       type="color"
                       value={coCardForm.pricolour || "#121212"}
                       onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
-                      className="w-12 h-10 rounded border border-input cursor-pointer"
+                      className="w-10 h-10 rounded-lg border-0 cursor-pointer"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">Cor das Fontes (Secundária)</Label>
-                  <div className="flex gap-2 items-center">
+                  <Label className="text-xs text-gray-500">Cor das Fontes</Label>
+                  <div className="flex gap-2">
                     <Input
                       value={coCardForm.seccolour}
                       onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
-                      placeholder="#dcd0c0"
-                      className="flex-1 font-mono"
+                      className="bg-[#252525] border-0 text-white flex-1 font-mono text-xs"
                     />
                     <input
                       type="color"
                       value={coCardForm.seccolour || "#dcd0c0"}
                       onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
-                      className="w-12 h-10 rounded border border-input cursor-pointer"
+                      className="w-10 h-10 rounded-lg border-0 cursor-pointer"
                     />
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Icon Selector */}
-              <div className="space-y-2 mt-4">
-                <Label className="text-sm text-muted-foreground">Ícone dos Selos</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { value: 'armchair', label: 'Poltrona', Icon: Armchair },
-                    { value: 'star', label: 'Estrela', Icon: Star },
-                    { value: 'x', label: 'X', Icon: X },
-                    { value: 'circle', label: 'Círculo', Icon: Circle },
-                  ].map(({ value, label, Icon }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setCoCardForm({...coCardForm, icon: value})}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
-                        coCardForm.icon === value 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <Icon className="w-6 h-6" />
-                      <span className="text-xs font-medium">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Card Preview */}
-              <div className="mt-4 space-y-2">
-                <Label className="text-sm text-muted-foreground">📱 Preview do Cartão</Label>
-                <div 
-                  className="rounded-2xl p-4 flex flex-col items-center gap-3"
-                  style={{ backgroundColor: coCardForm.pricolour || '#121212' }}
-                >
-                  <span 
-                    className="text-sm font-bold"
-                    style={{ color: coCardForm.seccolour || '#dcd0c0' }}
+            {/* Icon Selector */}
+            <div className="space-y-2">
+              <Label className="text-gray-300">Ícone dos Selos</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { value: 'armchair', label: 'Poltrona', Icon: Armchair },
+                  { value: 'star', label: 'Estrela', Icon: Star },
+                  { value: 'x', label: 'X', Icon: X },
+                  { value: 'circle', label: 'Círculo', Icon: Circle },
+                ].map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setCoCardForm({...coCardForm, icon: value})}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
+                      coCardForm.icon === value 
+                        ? 'bg-orange-500 text-white' 
+                        : 'bg-[#252525] text-gray-400 hover:bg-[#2a2a2a]'
+                    }`}
                   >
-                    {coCardForm.name || 'Nome do Cartão'}
-                  </span>
-                  <div 
-                    className="flex gap-2 p-2 rounded-xl"
-                    style={{ backgroundColor: coCardForm.seccolour || '#dcd0c0' }}
-                  >
-                    {[...Array(5)].map((_, i) => {
-                      const IconComponent = coCardForm.icon === 'star' ? Star 
-                        : coCardForm.icon === 'x' ? X 
-                        : coCardForm.icon === 'circle' ? Circle 
-                        : Armchair;
-                      return (
-                        <IconComponent 
-                          key={i} 
-                          className="w-5 h-5" 
-                          style={{ color: i < 3 ? coCardForm.pricolour || '#121212' : '#a89f91', opacity: i < 3 ? 1 : 0.4 }}
-                        />
-                      );
-                    })}
-                  </div>
-                  <span 
-                    className="text-xs text-center max-w-[200px]"
-                    style={{ color: `${coCardForm.seccolour || '#dcd0c0'}99` }}
-                  >
-                    {coCardForm.text || 'Texto do cartão aqui...'}
-                  </span>
-                </div>
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[10px]">{label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <Label htmlFor="cocard-active">Cartão Ativo</Label>
+            {/* Preview */}
+            <div className="space-y-2">
+              <Label className="text-gray-300">Preview</Label>
+              <div 
+                className="rounded-2xl p-4 flex flex-col items-center gap-3"
+                style={{ backgroundColor: coCardForm.pricolour || '#121212' }}
+              >
+                <span 
+                  className="text-sm font-bold"
+                  style={{ color: coCardForm.seccolour || '#dcd0c0' }}
+                >
+                  {coCardForm.name || 'Nome do Cartão'}
+                </span>
+                <div 
+                  className="flex gap-2 p-2 rounded-xl"
+                  style={{ backgroundColor: coCardForm.seccolour || '#dcd0c0' }}
+                >
+                  {[...Array(5)].map((_, i) => {
+                    const IconComponent = coCardForm.icon === 'star' ? Star 
+                      : coCardForm.icon === 'x' ? X 
+                      : coCardForm.icon === 'circle' ? Circle 
+                      : Armchair;
+                    return (
+                      <IconComponent 
+                        key={i} 
+                        className="w-5 h-5" 
+                        style={{ color: i < 3 ? coCardForm.pricolour || '#121212' : '#a89f91', opacity: i < 3 ? 1 : 0.4 }}
+                      />
+                    );
+                  })}
+                </div>
+                <span 
+                  className="text-xs text-center max-w-[200px]"
+                  style={{ color: `${coCardForm.seccolour || '#dcd0c0'}99` }}
+                >
+                  {coCardForm.text || 'Texto do cartão aqui...'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-white/10">
+              <Label className="text-gray-300">Cartão Ativo</Label>
               <Switch
-                id="cocard-active"
                 checked={coCardForm.active}
                 onCheckedChange={(checked) => setCoCardForm({...coCardForm, active: checked})}
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCoCardForm(false)}>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="ghost" 
+              onClick={() => setShowCoCardForm(false)}
+              className="text-gray-400 hover:text-white hover:bg-white/10"
+            >
               Cancelar
             </Button>
-            <Button onClick={handleSaveCoCard} disabled={savingCoCard} className="gradient-warm">
+            <Button 
+              onClick={handleSaveCoCard} 
+              disabled={savingCoCard} 
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
               {savingCoCard ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {coCardForm.id ? "💾 Salvar" : "✨ Criar Cartão"}
+              {coCardForm.id ? "Salvar" : "Criar Cartão"}
             </Button>
           </DialogFooter>
         </DialogContent>
