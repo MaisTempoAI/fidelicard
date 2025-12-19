@@ -778,46 +778,108 @@ END:VCARD`;
                 <p className="text-xs text-gray-500">Crie seu primeiro cartão</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {coCards.map((coCard) => (
-                  <div 
-                    key={coCard.id} 
-                    className="bg-[#1a1a1a] rounded-2xl overflow-hidden"
-                  >
-                    <div
-                      className="h-2"
-                      style={{ background: `linear-gradient(135deg, ${coCard.pricolour || '#FF6B35'}, ${coCard.seccolour || '#F7931E'})` }}
-                    />
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-white">{coCard.name}</span>
-                            {coCard.active ? (
-                              <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">Ativo</Badge>
-                            ) : (
-                              <Badge className="bg-gray-500/20 text-gray-400 border-0 text-[10px]">Inativo</Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-400 line-clamp-1 mb-2">{coCard.text}</p>
-                          <div className="flex gap-2">
-                            <span className="bg-[#252525] px-2 py-1 rounded-lg text-xs text-gray-300">{coCard.stamps} selos</span>
-                            <span className="bg-[#252525] px-2 py-1 rounded-lg text-xs text-gray-300">{coCard.days} dias</span>
-                          </div>
+              <div className="space-y-4">
+                {coCards.map((coCard) => {
+                  const IconComponent = coCard.icon === 'star' ? Star : coCard.icon === 'circle' ? Circle : coCard.icon === 'x' ? X : Armchair;
+                  return (
+                    <div 
+                      key={coCard.id} 
+                      className="relative group"
+                    >
+                      {/* Card Preview */}
+                      <div 
+                        className="rounded-2xl p-5 min-h-[180px] relative overflow-hidden shadow-xl"
+                        style={{ 
+                          backgroundColor: coCard.pricolour || '#121212',
+                        }}
+                      >
+                        {/* Status badge */}
+                        <div className="absolute top-3 right-3">
+                          {coCard.active ? (
+                            <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">Ativo</Badge>
+                          ) : (
+                            <Badge className="bg-gray-500/20 text-gray-400 border-0 text-[10px]">Inativo</Badge>
+                          )}
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-9 w-9 text-gray-400 hover:text-white hover:bg-white/10"
-                            onClick={() => handleOpenCoCardForm(coCard)}
+
+                        {/* Card header */}
+                        <div className="mb-4">
+                          <h3 
+                            className="text-lg font-bold mb-1"
+                            style={{ color: coCard.seccolour || '#dcd0c0' }}
                           >
-                            <Pencil className="w-4 h-4" />
+                            {coCard.name || 'Nome do Cartão'}
+                          </h3>
+                          <p 
+                            className="text-sm opacity-80 line-clamp-2"
+                            style={{ color: coCard.seccolour || '#dcd0c0' }}
+                          >
+                            {coCard.text || 'Texto do cartão'}
+                          </p>
+                        </div>
+
+                        {/* Stamps preview */}
+                        <div className="flex gap-2 flex-wrap mb-3">
+                          {Array.from({ length: Math.min(coCard.stamps || 10, 6) }).map((_, i) => (
+                            <div
+                              key={i}
+                              className="w-8 h-8 rounded-full flex items-center justify-center opacity-60"
+                              style={{ 
+                                backgroundColor: `${coCard.seccolour || '#dcd0c0'}20`,
+                                border: `1px dashed ${coCard.seccolour || '#dcd0c0'}40`
+                              }}
+                            >
+                              <IconComponent 
+                                className="w-4 h-4" 
+                                style={{ color: coCard.seccolour || '#dcd0c0' }} 
+                              />
+                            </div>
+                          ))}
+                          {(coCard.stamps || 10) > 6 && (
+                            <span 
+                              className="text-xs self-center opacity-60"
+                              style={{ color: coCard.seccolour || '#dcd0c0' }}
+                            >
+                              +{(coCard.stamps || 10) - 6}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Card footer info */}
+                        <div className="flex gap-2 mt-auto">
+                          <span 
+                            className="px-2 py-1 rounded-lg text-xs"
+                            style={{ 
+                              backgroundColor: `${coCard.seccolour || '#dcd0c0'}15`,
+                              color: coCard.seccolour || '#dcd0c0'
+                            }}
+                          >
+                            {coCard.stamps} selos
+                          </span>
+                          <span 
+                            className="px-2 py-1 rounded-lg text-xs"
+                            style={{ 
+                              backgroundColor: `${coCard.seccolour || '#dcd0c0'}15`,
+                              color: coCard.seccolour || '#dcd0c0'
+                            }}
+                          >
+                            {coCard.days} dias
+                          </span>
+                        </div>
+
+                        {/* Edit overlay */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                          <Button
+                            onClick={() => handleOpenCoCardForm(coCard)}
+                            className="bg-[#b8860b] hover:bg-[#a07608] text-white px-6"
+                          >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Editar
                           </Button>
                           <Button
                             size="icon"
-                            variant="ghost"
-                            className="h-9 w-9 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            variant="outline"
+                            className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
                             onClick={() => handleDeleteCoCard(coCard.id)}
                             disabled={deletingCoCard === coCard.id}
                           >
@@ -830,8 +892,8 @@ END:VCARD`;
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
