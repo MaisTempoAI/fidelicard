@@ -154,9 +154,15 @@ const CardPage = () => {
   const loyaltyText = coCardData?.text || companyData?.loyaltytext || `Complete ${requiredStamps} selos e ganhe um almoço gratuito!`;
   const exchangeProducts = coCardData?.prod || companyData?.exchangeproducts;
   const remainingStamps = requiredStamps - currentStamps;
-  // Card appearance from CoCard or company defaults
-  const cardBgColor = coCardData?.pricolour || companyData?.primarycolour || "#121212";
-  const fontColor = coCardData?.seccolour || companyData?.secundarycolour || "#dcd0c0";
+  
+  // Check if card is completed
+  const isCompleted = currentStamps >= requiredStamps || cardData.completed;
+  
+  // Card appearance from CoCard or company defaults - INVERT if completed
+  const originalBgColor = coCardData?.pricolour || companyData?.primarycolour || "#121212";
+  const originalFontColor = coCardData?.seccolour || companyData?.secundarycolour || "#dcd0c0";
+  const cardBgColor = isCompleted ? originalFontColor : originalBgColor;
+  const fontColor = isCompleted ? originalBgColor : originalFontColor;
   const cardIcon = coCardData?.icon || "armchair";
   const companyLogo = companyData?.elogo;
 
