@@ -34,7 +34,13 @@ const Scanner = () => {
   const companyId = localStorage.getItem("admin_company_id");
 
   useEffect(() => {
+    // Auto-start camera when component mounts
+    const timer = setTimeout(() => {
+      startScanner();
+    }, 300);
+
     return () => {
+      clearTimeout(timer);
       stopScanner();
     };
   }, []);
