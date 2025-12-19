@@ -139,24 +139,17 @@ const CompanyPage = () => {
         Admin
       </Button>
 
-      {/* Logo */}
-      <div className="mb-6">
-        {company.elogo ? (
+      {/* Logo - only show if company has an elogo */}
+      {company.elogo && (
+        <div className="mb-6">
           <img
             src={company.elogo}
             alt={company.name || "Logo"}
             className="w-[clamp(60px,15vw,80px)] h-[clamp(60px,15vw,80px)] rounded-full object-cover"
             style={{ border: `2px solid ${colors.fontColor}20` }}
           />
-        ) : (
-          <div 
-            className="w-[clamp(60px,15vw,80px)] h-[clamp(60px,15vw,80px)] rounded-full flex items-center justify-center"
-            style={{ backgroundColor: colors.fontColor, color: colors.bgColor }}
-          >
-            <span className="text-[clamp(24px,6vw,32px)] font-bold">{company.name?.charAt(0) || "E"}</span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Company Name */}
       <h1 
