@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UtensilsCrossed, ArrowLeft, Camera, Search, Loader2, CheckCircle, XCircle, Check, Gift } from "lucide-react";
+import { QrCode, ArrowLeft, Camera, Search, Loader2, CheckCircle, XCircle, Check, Gift } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
@@ -230,7 +230,7 @@ const Scanner = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-start p-4 pt-16">
       {/* Back button */}
       <div className="absolute top-4 left-4">
         <Button
@@ -240,59 +240,54 @@ const Scanner = () => {
             stopScanner();
             navigate("/admin");
           }}
-          className="text-muted-foreground"
+          className="text-[#888] hover:text-white hover:bg-[#2a2a2a]"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar
         </Button>
       </div>
 
-      {/* Decorative background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl" />
-      </div>
-
-      <Card className="w-full max-w-sm relative z-10 border-primary/20 shadow-xl overflow-hidden">
+      <Card className="w-full max-w-sm relative z-10 bg-[#1a1a1a] border-[#2a2a2a] shadow-xl overflow-hidden">
         {/* Header */}
-        <CardHeader className="gradient-warm text-primary-foreground text-center pb-4">
+        <CardHeader className="bg-[#b8860b] text-white text-center py-4">
           <div className="flex items-center justify-center gap-2">
-            <UtensilsCrossed className="w-6 h-6" />
-            <h1 className="text-xl font-bold">Escanear QR Code</h1>
+            <QrCode className="w-5 h-5" />
+            <h1 className="text-lg font-bold">Escanear QR Code</h1>
           </div>
         </CardHeader>
 
-        <CardContent className="pt-6 pb-6">
+        <CardContent className="pt-6 pb-6 bg-[#1a1a1a]">
           {/* Scanned Card Result */}
           {scannedCard ? (
             <div className="space-y-4">
               <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
                 <div className="flex items-center gap-2 mb-3">
                   <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span className="font-semibold text-green-700">Cartão Encontrado!</span>
+                  <span className="font-semibold text-green-400">Cartão Encontrado!</span>
                 </div>
                 
                 <div className="space-y-2 text-sm">
-                  <p className="text-foreground">
-                    <span className="text-muted-foreground">Nome:</span>{" "}
+                  <p className="text-white">
+                    <span className="text-[#888]">Nome:</span>{" "}
                     <span className="font-medium">{scannedCard.clientName || "-"}</span>
                   </p>
-                  <p className="text-foreground">
-                    <span className="text-muted-foreground">Telefone:</span>{" "}
+                  <p className="text-white">
+                    <span className="text-[#888]">Telefone:</span>{" "}
                     <span className="font-medium">{scannedCard.clientPhone || "-"}</span>
                   </p>
-                  <p className="text-foreground">
-                    <span className="text-muted-foreground">Código:</span>{" "}
-                    <span className="font-mono font-bold text-primary">{scannedCard.cardcode}</span>
+                  <p className="text-white">
+                    <span className="text-[#888]">Código:</span>{" "}
+                    <span className="font-mono font-bold text-[#b8860b]">{scannedCard.cardcode}</span>
                   </p>
-                  <p className="text-foreground">
-                    <span className="text-muted-foreground">Carimbos:</span>{" "}
-                    <span className="font-bold text-primary text-lg">{scannedCard.custamp}</span>
-                    <span className="text-muted-foreground">/{scannedCard.reqstamp}</span>
+                  <p className="text-white">
+                    <span className="text-[#888]">Selos:</span>{" "}
+                    <span className="font-bold text-[#b8860b] text-lg">{scannedCard.custamp}</span>
+                    <span className="text-[#888]">/{scannedCard.reqstamp}</span>
                   </p>
                   {scannedCard.rescued ? (
-                    <p className="text-purple-600 font-medium">🎁 Já Resgatado!</p>
+                    <p className="text-purple-400 font-medium">🎁 Já Resgatado!</p>
                   ) : scannedCard.completed && (
-                    <p className="text-green-600 font-medium">✓ Cartão Completo!</p>
+                    <p className="text-green-400 font-medium">✓ Cartão Completo!</p>
                   )}
                 </div>
               </div>
@@ -300,15 +295,15 @@ const Scanner = () => {
               {rescued ? (
                 <div className="space-y-3">
                   <div className="p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg text-center">
-                    <Gift className="w-6 h-6 text-purple-600 mx-auto mb-1" />
-                    <p className="font-semibold text-purple-700">Prêmio Resgatado!</p>
-                    <p className="text-sm text-purple-600">
+                    <Gift className="w-6 h-6 text-purple-400 mx-auto mb-1" />
+                    <p className="font-semibold text-purple-400">Prêmio Resgatado!</p>
+                    <p className="text-sm text-purple-300">
                       {scannedCard.clientName || "Cliente"} resgatou seu prêmio
                     </p>
                   </div>
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white hover:bg-[#3a3a3a]"
                     onClick={handleReset}
                   >
                     Escanear Outro Cartão
@@ -317,15 +312,15 @@ const Scanner = () => {
               ) : stampAdded ? (
                 <div className="space-y-3">
                   <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-lg text-center">
-                    <Check className="w-6 h-6 text-green-600 mx-auto mb-1" />
-                    <p className="font-semibold text-green-700">Carimbo Adicionado!</p>
-                    <p className="text-sm text-green-600">
-                      Agora: <span className="font-bold">{scannedCard.custamp}/{scannedCard.reqstamp}</span> carimbos
+                    <Check className="w-6 h-6 text-green-400 mx-auto mb-1" />
+                    <p className="font-semibold text-green-400">Selo Adicionado!</p>
+                    <p className="text-sm text-green-300">
+                      Agora: <span className="font-bold">{scannedCard.custamp}/{scannedCard.reqstamp}</span> selos
                     </p>
                   </div>
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white hover:bg-[#3a3a3a]"
                     onClick={handleReset}
                   >
                     Escanear Outro Cartão
@@ -334,7 +329,7 @@ const Scanner = () => {
               ) : scannedCard.rescued ? (
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white hover:bg-[#3a3a3a]"
                   onClick={handleReset}
                 >
                   Escanear Outro Cartão
@@ -343,7 +338,7 @@ const Scanner = () => {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 bg-[#2a2a2a] border-[#3a3a3a] text-white hover:bg-[#3a3a3a]"
                     onClick={handleReset}
                   >
                     Novo Scan
@@ -363,14 +358,14 @@ const Scanner = () => {
                     </Button>
                   ) : (
                     <Button
-                      className="flex-1 gradient-warm"
+                      className="flex-1 bg-[#b8860b] hover:bg-[#a07608] text-white"
                       onClick={handleAddStamp}
                       disabled={isAddingStamp}
                     >
                       {isAddingStamp ? (
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
                       ) : null}
-                      Adicionar Carimbo
+                      Adicionar Selo
                     </Button>
                   )}
                 </div>
@@ -378,15 +373,15 @@ const Scanner = () => {
             </div>
           ) : scanError ? (
             <div className="space-y-4">
-              <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-xl">
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
                 <div className="flex items-center gap-2">
-                  <XCircle className="w-5 h-5 text-destructive" />
-                  <span className="font-medium text-destructive">{scanError}</span>
+                  <XCircle className="w-5 h-5 text-red-500" />
+                  <span className="font-medium text-red-400">{scanError}</span>
                 </div>
               </div>
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full bg-[#2a2a2a] border-[#3a3a3a] text-white hover:bg-[#3a3a3a]"
                 onClick={handleReset}
               >
                 Tentar Novamente
@@ -397,16 +392,16 @@ const Scanner = () => {
               {/* Camera View */}
               <div 
                 ref={scannerContainerRef}
-                className="aspect-square rounded-xl bg-secondary/50 border-2 border-dashed border-primary/30 flex flex-col items-center justify-center mb-6 overflow-hidden relative"
+                className="aspect-square rounded-xl bg-[#2a2a2a] border-2 border-dashed border-[#b8860b]/30 flex flex-col items-center justify-center mb-6 overflow-hidden relative"
               >
                 <div id="qr-reader" className="w-full h-full" />
                 
                 {!isScanning && !isSearching && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-secondary/80">
-                    <Camera className="w-16 h-16 text-muted-foreground mb-4" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#2a2a2a]">
+                    <Camera className="w-16 h-16 text-[#666] mb-4" />
                     <Button
                       onClick={startScanner}
-                      className="gradient-warm"
+                      className="bg-[#b8860b] hover:bg-[#a07608] text-white"
                     >
                       <Camera className="w-4 h-4 mr-2" />
                       Iniciar Câmera
@@ -415,9 +410,9 @@ const Scanner = () => {
                 )}
 
                 {isSearching && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-secondary/80">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin mb-2" />
-                    <p className="text-muted-foreground">Buscando cartão...</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#2a2a2a]">
+                    <Loader2 className="w-10 h-10 text-[#b8860b] animate-spin mb-2" />
+                    <p className="text-[#888]">Buscando cartão...</p>
                   </div>
                 )}
               </div>
@@ -425,7 +420,7 @@ const Scanner = () => {
               {isScanning && (
                 <Button
                   variant="outline"
-                  className="w-full mb-6"
+                  className="w-full mb-6 bg-[#2a2a2a] border-[#3a3a3a] text-white hover:bg-[#3a3a3a]"
                   onClick={stopScanner}
                 >
                   Parar Scanner
@@ -434,9 +429,9 @@ const Scanner = () => {
 
               {/* Divider */}
               <div className="flex items-center gap-4 mb-6">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-muted-foreground text-sm">ou</span>
-                <div className="flex-1 h-px bg-border" />
+                <div className="flex-1 h-px bg-[#3a3a3a]" />
+                <span className="text-[#666] text-sm">ou</span>
+                <div className="flex-1 h-px bg-[#3a3a3a]" />
               </div>
 
               {/* Manual code input */}
@@ -445,13 +440,13 @@ const Scanner = () => {
                   placeholder="Digite o código (ex: H6KQWA)"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value.toUpperCase())}
-                  className="text-center font-mono text-lg tracking-widest border-primary/30"
+                  className="text-center font-mono text-lg tracking-widest bg-[#2a2a2a] border-[#3a3a3a] text-white placeholder:text-[#555]"
                   maxLength={6}
                 />
                 <Button
                   type="submit"
                   variant="outline"
-                  className="w-full border-primary/30 text-primary hover:bg-primary/10"
+                  className="w-full bg-[#2a2a2a] border-[#b8860b]/30 text-[#b8860b] hover:bg-[#b8860b]/10"
                   disabled={!manualCode.trim() || isSearching}
                 >
                   {isSearching ? (

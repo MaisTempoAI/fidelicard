@@ -45,73 +45,68 @@ const AdminLogin = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-40 h-40 bg-accent/10 rounded-full blur-3xl" />
-      </div>
-
-      <Card className="w-full max-w-md border-border/50 shadow-2xl">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-            <Lock className="w-8 h-8 text-primary" />
+    <main className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-[#1a1a1a] border-[#2a2a2a] shadow-2xl">
+        <CardHeader className="text-center space-y-4 pt-8">
+          <div className="mx-auto w-16 h-16 bg-[#2a2a2a] rounded-full flex items-center justify-center">
+            <Lock className="w-8 h-8 text-[#b8860b]" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-display text-foreground">
+            <CardTitle className="text-2xl font-display text-white">
               Área Administrativa
             </CardTitle>
-            <CardDescription className="text-muted-foreground mt-2">
-              Acesso restrito para funcionários do restaurante
+            <CardDescription className="text-[#888] mt-2">
+              Acesso restrito para funcionários
             </CardDescription>
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="pb-8">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground/80">
+              <Label htmlFor="email" className="text-[#aaa]">
                 Email ou Usuário
               </Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]" />
                 <Input
                   id="email"
                   type="text"
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 bg-card border-border/50 focus:border-primary"
+                  className="pl-10 bg-[#2a2a2a] border-[#3a3a3a] text-white placeholder:text-[#555] focus:border-[#b8860b] focus:ring-[#b8860b]/20"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground/80">
+              <Label htmlFor="password" className="text-[#aaa]">
                 Senha
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 bg-card border-border/50 focus:border-primary"
+                  className="pl-10 bg-[#2a2a2a] border-[#3a3a3a] text-white placeholder:text-[#555] focus:border-[#b8860b] focus:ring-[#b8860b]/20"
                 />
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-6"
+              className="w-full bg-[#b8860b] hover:bg-[#a07608] text-white font-medium py-6 mt-2"
               disabled={isLoading}
             >
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <p className="text-center text-xs text-[#666] mt-6">
             Sistema de fidelidade
           </p>
         </CardContent>
