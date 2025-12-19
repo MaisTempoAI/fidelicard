@@ -17,7 +17,7 @@ import {
 import { 
   Plus, QrCode, Search, Users, LogOut, Pencil, X, Check, Loader2, 
   Building, Gift, Trash2, CreditCard, Armchair, Star, Circle, 
-  Settings, Download, FileText, ChevronRight 
+  Settings, Download, FileText, ChevronRight, Phone, Calendar
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -40,6 +40,7 @@ import {
 } from "@/hooks/useCoCards";
 import { CoCardFormModal } from "@/components/CoCardFormModal";
 import { CompanyEditModal } from "@/components/CompanyEditModal";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EditingClient {
   cardId: number;
@@ -75,7 +76,16 @@ interface CoCardForm {
   active: boolean;
 }
 
-type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export';
+type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export' | 'stamps';
+
+interface StampEvent {
+  cardId: number;
+  clientName: string;
+  clientPhone: string;
+  stampNumber: number;
+  date: string;
+  time: string;
+}
 
 const Admin = () => {
   const [activeView, setActiveView] = useState<ActiveView>('menu');
@@ -123,6 +133,10 @@ const Admin = () => {
   // Export
   const [showExportModal, setShowExportModal] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Stamps view
+  const [stampsData, setStampsData] = useState<StampEvent[]>([]);
+  const [loadingStamps, setLoadingStamps] = useState(false);
 
   const companyId = localStorage.getItem("admin_company_id");
   const companyName = localStorage.getItem("admin_company_name") || "Minha Empresa";
@@ -189,6 +203,101 @@ const Admin = () => {
   const handleOpenCardsView = async () => {
     await loadCoCards();
     setActiveView('cards');
+  };
+
+  // Stamps history handlers
+  const parseStampEvents = (): StampEvent[] => {
+    const events: StampEvent[] = [];
+    
+    clients.forEach(client => {
+      // We need to get events from cards - but we don't have events in ClientWithCard
+      // For now, we'll need to fetch the cards with events
+    });
+    
+    return events;
+  };
+
+  const loadStampsData = async () => {
+    if (!companyId) return;
+    setLoadingStamps(true);
+    
+    try {
+      // Get all cards with events for this company's clients
+      const { data: cards, error } = await supabase
+        .from("CRF-Cards")
+        .select("id, events, idclient");
+      
+      if (error) throw error;
+      
+      const allEvents: StampEvent[] = [];
+      
+      for (const card of cards || []) {
+        if (!card.events) continue;
+        
+        // Find client for this card
+        const client = clients.find(c => c.cardId === card.id);
+        
+        // Parse events: "1selo='19/12/2025 | 14:17';2selo='19/12/2025 | 14:18'"
+        // Also support old format with "carimbo"
+        const entries = card.events.split(';');
+        
+        for (const entry of entries) {
+          const match = entry.match(/(\d+)(?:selo|carimbo)='(\d{2}\/\d{2}\/\d{4}) \| (\d{2}:\d{2})'/);
+          if (match) {
+            allEvents.push({
+              cardId: card.id,
+              clientName: client?.nome || 'Cliente',
+              clientPhone: client?.phone || '',
+              stampNumber: parseInt(match[1]),
+              date: match[2],
+              time: match[3],
+            });
+          }
+        }
+      }
+      
+      // Sort by date and time (most recent first)
+      allEvents.sort((a, b) => {
+        const [dayA, monthA, yearA] = a.date.split('/').map(Number);
+        const [dayB, monthB, yearB] = b.date.split('/').map(Number);
+        const dateA = new Date(yearA, monthA - 1, dayA, ...a.time.split(':').map(Number));
+        const dateB = new Date(yearB, monthB - 1, dayB, ...b.time.split(':').map(Number));
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      setStampsData(allEvents);
+    } catch (err) {
+      console.error('Error loading stamps:', err);
+      toast.error('Erro ao carregar selos');
+    }
+    
+    setLoadingStamps(false);
+  };
+
+  const handleOpenStampsView = async () => {
+    setActiveView('stamps');
+    await loadStampsData();
+  };
+
+  const getGroupedStamps = () => {
+    const groups: { [key: string]: StampEvent[] } = {};
+    const today = new Date();
+    const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getDate().toString().padStart(2, '0')}/${(yesterday.getMonth() + 1).toString().padStart(2, '0')}/${yesterday.getFullYear()}`;
+    
+    stampsData.forEach(stamp => {
+      let groupKey = stamp.date;
+      if (stamp.date === todayStr) groupKey = 'HOJE';
+      else if (stamp.date === yesterdayStr) groupKey = 'ONTEM';
+      
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(stamp);
+    });
+    
+    return groups;
   };
 
   const handleOpenCoCardForm = (coCard?: CoCard) => {
@@ -539,11 +648,14 @@ END:VCARD`;
                 <p className="text-xl font-bold text-white">{clients.length}</p>
                 <p className="text-[10px] text-gray-400">Clientes</p>
               </div>
-              <div className="bg-[#1a1a1a] rounded-2xl p-4 text-center">
-                <Star className="w-5 h-5 mx-auto mb-1 text-orange-500" />
-                <p className="text-xl font-bold text-white">{totalStamps}</p>
-                <p className="text-[10px] text-gray-400">Selos</p>
-              </div>
+            <div 
+              className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+              onClick={() => handleOpenStampsView()}
+            >
+              <Star className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+              <p className="text-xl font-bold text-white">{totalStamps}</p>
+              <p className="text-[10px] text-gray-400">Selos</p>
+            </div>
               <div className="bg-[#1a1a1a] rounded-2xl p-4 text-center">
                 <Gift className="w-5 h-5 mx-auto mb-1 text-orange-500" />
                 <p className="text-xl font-bold text-white">{completedCount}</p>
@@ -901,6 +1013,80 @@ END:VCARD`;
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Stamps History View */}
+        {activeView === 'stamps' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Histórico de Selos</h2>
+              <Badge className="bg-orange-500/20 text-orange-500 border-0">
+                {totalStamps} total
+              </Badge>
+            </div>
+
+            {loadingStamps ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-500" />
+                <p className="text-gray-400 mt-2">Carregando selos...</p>
+              </div>
+            ) : stampsData.length === 0 ? (
+              <div className="text-center py-12">
+                <Star className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+                <p className="text-gray-400">Nenhum selo registrado</p>
+                <p className="text-xs text-gray-500">Os selos aparecerão aqui quando adicionados</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(getGroupedStamps()).map(([date, stamps]) => (
+                  <div key={date}>
+                    {/* Date Header */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-px flex-1 bg-white/10" />
+                      <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {date}
+                      </span>
+                      <div className="h-px flex-1 bg-white/10" />
+                    </div>
+
+                    {/* Stamps for this date */}
+                    <div className="space-y-2">
+                      {stamps.map((stamp, idx) => (
+                        <div 
+                          key={`${stamp.cardId}-${stamp.stampNumber}-${idx}`}
+                          className="bg-[#1a1a1a] rounded-xl p-3 flex items-center gap-3"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                            <Star className="w-5 h-5 text-orange-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium truncate">{stamp.clientName}</p>
+                            {stamp.clientPhone && (
+                              <a 
+                                href={`https://wa.me/55${stamp.clientPhone.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-gray-400 hover:text-green-400 flex items-center gap-1"
+                              >
+                                <Phone className="w-3 h-3" />
+                                {stamp.clientPhone}
+                              </a>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-orange-500 font-bold text-lg">{stamp.stampNumber}º</p>
+                            <p className="text-xs text-gray-400">{stamp.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

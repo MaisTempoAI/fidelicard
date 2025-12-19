@@ -99,12 +99,12 @@ const AddStamp = () => {
           description: `${clientData?.nome || "Cliente"} ganhou a recompensa!`
         });
       } else {
-        toast.success("Carimbo adicionado!", {
-          description: `${newStamps}/${cardData.reqstamp} carimbos`
+        toast.success("Selo adicionado!", {
+          description: `${newStamps}/${cardData.reqstamp} selos`
         });
       }
     } else {
-      toast.error("Erro ao adicionar carimbo", {
+      toast.error("Erro ao adicionar selo", {
         description: error || "Tente novamente"
       });
     }
@@ -174,7 +174,7 @@ const AddStamp = () => {
         <CardHeader className="gradient-warm text-primary-foreground text-center pb-4">
           <div className="flex items-center justify-center gap-2">
             <UtensilsCrossed className="w-6 h-6" />
-            <h1 className="text-xl font-bold">Adicionar Carimbo</h1>
+            <h1 className="text-xl font-bold">Adicionar Selo</h1>
           </div>
         </CardHeader>
 
@@ -189,7 +189,7 @@ const AddStamp = () => {
           {/* Current stamps */}
           <div className="text-center mb-4">
             <p className="text-3xl font-bold text-primary">
-              Carimbos: {cardData.custamp}/{cardData.reqstamp}
+              Selos: {cardData.custamp}/{cardData.reqstamp}
             </p>
           </div>
 
@@ -232,7 +232,7 @@ const AddStamp = () => {
             ) : (
               <>
                 <Check className="w-5 h-5 mr-2" />
-                Adicionar Carimbo
+                Adicionar Selo
               </>
             )}
           </Button>

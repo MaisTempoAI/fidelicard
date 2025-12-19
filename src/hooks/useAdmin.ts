@@ -175,7 +175,7 @@ export const addStampToCard = async (cardId: number, currentStamps: number, requ
   
   // Format new event entry
   const eventDate = formatEventDate(new Date());
-  const newEvent = `${newStamps}carimbo='${eventDate}'`;
+  const newEvent = `${newStamps}selo='${eventDate}'`;
   
   // Append to existing events or start new
   const currentEvents = cardData?.events || '';
