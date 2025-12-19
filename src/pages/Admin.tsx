@@ -38,6 +38,7 @@ import {
   deleteCoCard,
   CoCard
 } from "@/hooks/useCoCards";
+import { CoCardFormModal } from "@/components/CoCardFormModal";
 
 interface EditingClient {
   cardId: number;
@@ -975,199 +976,14 @@ END:VCARD`;
       </Dialog>
 
       {/* CoCard Form Modal */}
-      <Dialog open={showCoCardForm} onOpenChange={setShowCoCardForm}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-[#1a1a1a] border-white/10 text-white">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <CreditCard className="w-5 h-5" />
-              {coCardForm.id ? "Editar Cartão" : "Novo Cartão"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-gray-300">Nome do Cartão</Label>
-              <Input
-                value={coCardForm.name}
-                onChange={(e) => setCoCardForm({...coCardForm, name: e.target.value})}
-                placeholder="Ex: Cartão Fidelidade VIP"
-                className="bg-[#252525] border-0 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Texto do Cartão</Label>
-              <Textarea
-                value={coCardForm.text}
-                onChange={(e) => setCoCardForm({...coCardForm, text: e.target.value})}
-                placeholder="Ex: Junte 10 selos e ganhe um corte na faixa!"
-                rows={2}
-                className="bg-[#252525] border-0 text-white resize-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Produto de Troca</Label>
-              <Input
-                value={coCardForm.prod}
-                onChange={(e) => setCoCardForm({...coCardForm, prod: e.target.value})}
-                placeholder="Ex: Corte de Cabelo"
-                className="bg-[#252525] border-0 text-white"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-gray-300">Selos Necessários</Label>
-                <Input
-                  type="number"
-                  value={coCardForm.stamps}
-                  onChange={(e) => setCoCardForm({...coCardForm, stamps: parseInt(e.target.value) || 10})}
-                  min={1}
-                  className="bg-[#252525] border-0 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Validade (dias)</Label>
-                <Input
-                  type="number"
-                  value={coCardForm.days}
-                  onChange={(e) => setCoCardForm({...coCardForm, days: parseInt(e.target.value) || 365})}
-                  min={1}
-                  className="bg-[#252525] border-0 text-white"
-                />
-              </div>
-            </div>
-
-            {/* Colors */}
-            <div className="pt-4 border-t border-white/10">
-              <Label className="text-gray-300 mb-3 block">Cores do Cartão</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs text-gray-500">Cor de Fundo</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={coCardForm.pricolour}
-                      onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
-                      className="bg-[#252525] border-0 text-white flex-1 font-mono text-xs"
-                    />
-                    <input
-                      type="color"
-                      value={coCardForm.pricolour || "#121212"}
-                      onChange={(e) => setCoCardForm({...coCardForm, pricolour: e.target.value})}
-                      className="w-10 h-10 rounded-lg border-0 cursor-pointer"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-gray-500">Cor das Fontes</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={coCardForm.seccolour}
-                      onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
-                      className="bg-[#252525] border-0 text-white flex-1 font-mono text-xs"
-                    />
-                    <input
-                      type="color"
-                      value={coCardForm.seccolour || "#dcd0c0"}
-                      onChange={(e) => setCoCardForm({...coCardForm, seccolour: e.target.value})}
-                      className="w-10 h-10 rounded-lg border-0 cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Icon Selector */}
-            <div className="space-y-2">
-              <Label className="text-gray-300">Ícone dos Selos</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { value: 'armchair', label: 'Poltrona', Icon: Armchair },
-                  { value: 'star', label: 'Estrela', Icon: Star },
-                  { value: 'x', label: 'X', Icon: X },
-                  { value: 'circle', label: 'Círculo', Icon: Circle },
-                ].map(({ value, label, Icon }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setCoCardForm({...coCardForm, icon: value})}
-                    className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${
-                      coCardForm.icon === value 
-                        ? 'bg-orange-500 text-white' 
-                        : 'bg-[#252525] text-gray-400 hover:bg-[#2a2a2a]'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="text-[10px]">{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Preview */}
-            <div className="space-y-2">
-              <Label className="text-gray-300">Preview</Label>
-              <div 
-                className="rounded-2xl p-4 flex flex-col items-center gap-3"
-                style={{ backgroundColor: coCardForm.pricolour || '#121212' }}
-              >
-                <span 
-                  className="text-sm font-bold"
-                  style={{ color: coCardForm.seccolour || '#dcd0c0' }}
-                >
-                  {coCardForm.name || 'Nome do Cartão'}
-                </span>
-                <div 
-                  className="flex gap-2 p-2 rounded-xl"
-                  style={{ backgroundColor: coCardForm.seccolour || '#dcd0c0' }}
-                >
-                  {[...Array(5)].map((_, i) => {
-                    const IconComponent = coCardForm.icon === 'star' ? Star 
-                      : coCardForm.icon === 'x' ? X 
-                      : coCardForm.icon === 'circle' ? Circle 
-                      : Armchair;
-                    return (
-                      <IconComponent 
-                        key={i} 
-                        className="w-5 h-5" 
-                        style={{ color: i < 3 ? coCardForm.pricolour || '#121212' : '#a89f91', opacity: i < 3 ? 1 : 0.4 }}
-                      />
-                    );
-                  })}
-                </div>
-                <span 
-                  className="text-xs text-center max-w-[200px]"
-                  style={{ color: `${coCardForm.seccolour || '#dcd0c0'}99` }}
-                >
-                  {coCardForm.text || 'Texto do cartão aqui...'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-white/10">
-              <Label className="text-gray-300">Cartão Ativo</Label>
-              <Switch
-                checked={coCardForm.active}
-                onCheckedChange={(checked) => setCoCardForm({...coCardForm, active: checked})}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="ghost" 
-              onClick={() => setShowCoCardForm(false)}
-              className="text-gray-400 hover:text-white hover:bg-white/10"
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSaveCoCard} 
-              disabled={savingCoCard} 
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              {savingCoCard ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {coCardForm.id ? "Salvar" : "Criar Cartão"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CoCardFormModal
+        open={showCoCardForm}
+        onOpenChange={setShowCoCardForm}
+        coCardForm={coCardForm}
+        setCoCardForm={setCoCardForm}
+        onSave={handleSaveCoCard}
+        saving={savingCoCard}
+      />
     </div>
   );
 };
