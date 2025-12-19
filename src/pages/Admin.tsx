@@ -1061,26 +1061,24 @@ END:VCARD`;
                           key={`${stamp.cardId}-${stamp.stampNumber}-${idx}`}
                           className="bg-[#1a1a1a] rounded-xl p-3 flex items-center gap-3"
                         >
-                          <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-                            <Star className="w-5 h-5 text-orange-500" />
+                          <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                            <Star className="w-4 h-4 text-orange-500" />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-white font-medium truncate">{stamp.clientName}</p>
-                            {stamp.clientPhone && (
-                              <a 
-                                href={`https://wa.me/55${stamp.clientPhone.replace(/\D/g, '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-gray-400 hover:text-green-400 flex items-center gap-1"
-                              >
-                                <Phone className="w-3 h-3" />
-                                {stamp.clientPhone}
-                              </a>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="text-orange-500 font-bold text-lg">{stamp.stampNumber}º</p>
-                            <p className="text-xs text-gray-400">{stamp.time}</p>
+                          <p className="text-white font-medium truncate min-w-0">{stamp.clientName}</p>
+                          {stamp.clientPhone && (
+                            <a 
+                              href={`https://wa.me/55${stamp.clientPhone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-gray-400 hover:text-green-400 flex items-center gap-1 flex-shrink-0"
+                            >
+                              <Phone className="w-3 h-3" />
+                              {stamp.clientPhone}
+                            </a>
+                          )}
+                          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+                            <span className="text-sm text-gray-400">{stamp.time}</span>
+                            <span className="text-orange-500 font-bold">({stamp.stampNumber}º)</span>
                           </div>
                         </div>
                       ))}
