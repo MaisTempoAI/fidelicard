@@ -39,6 +39,7 @@ import {
   CoCard
 } from "@/hooks/useCoCards";
 import { CoCardFormModal } from "@/components/CoCardFormModal";
+import { CompanyEditModal } from "@/components/CompanyEditModal";
 
 interface EditingClient {
   cardId: number;
@@ -57,6 +58,8 @@ interface CompanyDataForm {
   address: string;
   urlsite: string;
   loyaltytext: string;
+  primarycolour: string;
+  icon: string;
 }
 
 interface CoCardForm {
@@ -94,6 +97,8 @@ const Admin = () => {
     address: "",
     urlsite: "",
     loyaltytext: "",
+    primarycolour: "#121212",
+    icon: "scissors",
   });
   const [savingCompany, setSavingCompany] = useState(false);
 
@@ -157,6 +162,8 @@ const Admin = () => {
         address: company.address || "",
         urlsite: company.urlsite || "",
         loyaltytext: company.loyaltytext || "",
+        primarycolour: company.primarycolour || "#121212",
+        icon: company.icon || "scissors",
       });
     }
   };
@@ -938,97 +945,14 @@ END:VCARD`;
       </Dialog>
 
       {/* Company Data Modal */}
-      <Dialog open={showCompanyDataModal} onOpenChange={setShowCompanyDataModal}>
-        <DialogContent className="sm:max-w-md bg-[#1a1a1a] border-white/10 text-white max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <Building className="w-5 h-5" />
-              Editar Dados da Empresa
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-gray-300">Nome</Label>
-              <Input
-                value={companyDataForm.name}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, name: e.target.value})}
-                placeholder="Nome da empresa"
-                className="bg-[#252525] border-0 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Telefone</Label>
-              <Input
-                value={companyDataForm.phone}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, phone: e.target.value})}
-                placeholder="Telefone"
-                className="bg-[#252525] border-0 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Email</Label>
-              <Input
-                type="email"
-                value={companyDataForm.email}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, email: e.target.value})}
-                placeholder="Email"
-                className="bg-[#252525] border-0 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Endereço</Label>
-              <Input
-                value={companyDataForm.address}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, address: e.target.value})}
-                placeholder="Endereço"
-                className="bg-[#252525] border-0 text-white"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Link Personalizado</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 whitespace-nowrap">/empresa/</span>
-                <Input
-                  value={companyDataForm.urlsite}
-                  onChange={(e) => setCompanyDataForm({
-                    ...companyDataForm, 
-                    urlsite: e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '')
-                  })}
-                  placeholder="NOME"
-                  className="bg-[#252525] border-0 text-white uppercase"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Texto de Apresentação</Label>
-              <Textarea
-                value={companyDataForm.loyaltytext}
-                onChange={(e) => setCompanyDataForm({...companyDataForm, loyaltytext: e.target.value})}
-                placeholder="Junte 10 selos e ganhe um prêmio!"
-                rows={3}
-                className="bg-[#252525] border-0 text-white resize-none"
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="ghost" 
-              onClick={() => setShowCompanyDataModal(false)}
-              className="text-gray-400 hover:text-white hover:bg-white/10"
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSaveCompanyData} 
-              disabled={savingCompany} 
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              {savingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CompanyEditModal
+        open={showCompanyDataModal}
+        onOpenChange={setShowCompanyDataModal}
+        companyDataForm={companyDataForm}
+        setCompanyDataForm={setCompanyDataForm}
+        onSave={handleSaveCompanyData}
+        saving={savingCompany}
+      />
 
       {/* CoCard Form Modal */}
       <CoCardFormModal

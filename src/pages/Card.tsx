@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
 
@@ -31,6 +31,7 @@ interface CompanyData {
   primarycolour: string | null;
   secundarycolour: string | null;
   type: string | null;
+  icon: string | null;
 }
 
 const CardPage = () => {
@@ -102,6 +103,7 @@ const CardPage = () => {
                   primarycolour: company.primarycolour,
                   secundarycolour: company.secundarycolour,
                   type: company.type,
+                  icon: company.icon,
                 });
               }
             }
@@ -164,7 +166,19 @@ const CardPage = () => {
   const cardBgColor = isCompleted ? originalFontColor : originalBgColor;
   const fontColor = isCompleted ? originalBgColor : originalFontColor;
   const cardIcon = coCardData?.icon || "armchair";
+  const companyIcon = companyData?.icon || "scissors";
   const companyLogo = companyData?.elogo;
+
+  // Helper function to get the company icon component
+  const getCompanyIcon = () => {
+    const iconClass = "w-[clamp(18px,4.5vw,24px)] h-[clamp(18px,4.5vw,24px)]";
+    switch (companyIcon) {
+      case 'utensils': return <UtensilsCrossed className={iconClass} style={{ color: fontColor }} />;
+      case 'car': return <Car className={iconClass} style={{ color: fontColor }} />;
+      case 'gift': return <Gift className={iconClass} style={{ color: fontColor }} />;
+      default: return <Scissors className={iconClass} style={{ color: fontColor }} />;
+    }
+  };
 
   // Helper function to get the stamp icon component - always black stamps on light background
   const getStampIcon = (filled: boolean) => {
@@ -216,7 +230,7 @@ const CardPage = () => {
             className="flex items-center justify-center gap-2.5 text-[clamp(22px,5.5vw,30px)] font-light tracking-tight mb-[clamp(5px,1vh,10px)]"
             style={{ color: fontColor }}
           >
-            <Scissors className="w-[clamp(18px,4.5vw,24px)] h-[clamp(18px,4.5vw,24px)]" style={{ color: fontColor }} />
+            {getCompanyIcon()}
             <span className="font-light">{companyName.split(' ')[0]}<span className="font-extrabold">{companyName.split(' ').slice(1).join(' ') || 'Shop'}</span></span>
           </div>
           

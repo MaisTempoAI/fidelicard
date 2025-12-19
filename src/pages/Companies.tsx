@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings, Scissors, Star, X, Circle, Armchair, Sparkles, Clock } from "lucide-react";
+import { Loader2, Settings, Scissors, Star, X, Circle, Armchair, Sparkles, Clock, UtensilsCrossed, Car, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
@@ -14,6 +14,7 @@ interface Company {
   address: string | null;
   primarycolour: string | null;
   secundarycolour: string | null;
+  icon: string | null;
 }
 
 interface CoCard {
@@ -48,7 +49,7 @@ const Companies = () => {
         // Fetch active companies
         const { data: companies, error: companiesError } = await supabase
           .from("CRF-Companies")
-          .select("id, name, slug, elogo, active, phone, address, primarycolour, secundarycolour")
+          .select("id, name, slug, elogo, active, phone, address, primarycolour, secundarycolour, icon")
           .eq("active", true)
           .order("name");
 
@@ -183,6 +184,18 @@ const Companies = () => {
               const requiredStamps = coCard?.stamps || 10;
               const loyaltyText = coCard?.text || "Complete os selos e ganhe um brinde!";
               const companyName = company.name || "Empresa";
+              const companyIcon = company.icon || "scissors";
+              
+              // Helper to get company icon
+              const getCompanyIconElement = () => {
+                const iconClass = "w-[clamp(18px,4.5vw,24px)] h-[clamp(18px,4.5vw,24px)]";
+                switch (companyIcon) {
+                  case 'utensils': return <UtensilsCrossed className={iconClass} style={{ color: fontColor }} />;
+                  case 'car': return <Car className={iconClass} style={{ color: fontColor }} />;
+                  case 'gift': return <Gift className={iconClass} style={{ color: fontColor }} />;
+                  default: return <Scissors className={iconClass} style={{ color: fontColor }} />;
+                }
+              };
               
               // Vary sample stamps for each card (2-5 filled based on index)
               const sampleFilledStamps = 2 + (index % 4);
@@ -206,7 +219,7 @@ const Companies = () => {
                         className="flex items-center justify-center gap-2.5 text-[clamp(22px,5.5vw,30px)] font-light tracking-tight mb-[clamp(5px,1vh,10px)]"
                         style={{ color: fontColor }}
                       >
-                        <Scissors className="w-[clamp(18px,4.5vw,24px)] h-[clamp(18px,4.5vw,24px)]" style={{ color: fontColor }} />
+                        {getCompanyIconElement()}
                         <span className="font-light">{companyName.split(' ')[0]}<span className="font-extrabold">{companyName.split(' ').slice(1).join(' ') || ''}</span></span>
                       </div>
                       
