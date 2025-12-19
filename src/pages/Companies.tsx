@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings, Scissors, Star, X, Circle, Armchair, Sparkles } from "lucide-react";
+import { Loader2, Settings, Scissors, Star, X, Circle, Armchair, Sparkles, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
@@ -83,7 +83,7 @@ const Companies = () => {
 
   // Helper function to get the stamp icon component
   const getStampIcon = (iconType: string, filled: boolean, bgColor: string) => {
-    const baseClass = "w-4 h-4 transition-transform duration-200";
+    const baseClass = `w-[clamp(22px,5vw,28px)] h-[clamp(22px,5vw,28px)] transition-transform duration-200`;
     const colorStyle = filled 
       ? { color: bgColor }
       : { color: '#a89f91', opacity: 0.35 };
@@ -100,6 +100,9 @@ const Companies = () => {
         return <Armchair className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
     }
   };
+
+  // Get base URL for QR code
+  const baseUrl = window.location.origin;
 
   if (isLoading) {
     return (
@@ -185,28 +188,47 @@ const Companies = () => {
                   className="cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl"
                   onClick={() => handleSelectCompany(company.id)}
                 >
-                  {/* Card Preview - Replica of the actual card design */}
+                  {/* Card Preview - Exact replica of Card.tsx design */}
                   <div 
-                    className="rounded-[25px] py-5 px-5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex flex-col items-center gap-3"
+                    className="w-full max-w-[380px] mx-auto rounded-[35px] py-[clamp(18px,2.5vh,28px)] px-[clamp(18px,4vw,22px)] shadow-[0_40px_80px_rgba(0,0,0,0.5)] flex flex-col items-center gap-[clamp(10px,1.8vh,18px)]"
                     style={{ backgroundColor: cardBgColor }}
                   >
+                    
                     {/* Header */}
                     <header className="w-full text-center">
                       <div 
-                        className="flex items-center justify-center gap-2 text-xl font-light tracking-tight"
+                        className="flex items-center justify-center gap-2.5 text-[clamp(22px,5.5vw,30px)] font-light tracking-tight mb-[clamp(5px,1vh,10px)]"
                         style={{ color: fontColor }}
                       >
-                        <Scissors className="w-5 h-5" style={{ color: fontColor }} />
+                        <Scissors className="w-[clamp(18px,4.5vw,24px)] h-[clamp(18px,4.5vw,24px)]" style={{ color: fontColor }} />
                         <span className="font-light">{companyName.split(' ')[0]}<span className="font-extrabold">{companyName.split(' ').slice(1).join(' ') || ''}</span></span>
+                      </div>
+                      
+                      <div className="flex flex-col items-center gap-1">
+                        <div 
+                          className="text-[clamp(15px,4vw,19px)] font-bold"
+                          style={{ color: fontColor }}
+                        >
+                          Cliente
+                        </div>
+                        <div 
+                          className="flex flex-wrap justify-center gap-2.5 text-[clamp(10px,2.5vw,12px)] font-medium py-1 px-3 rounded-[20px]"
+                          style={{ backgroundColor: `${fontColor}10`, color: `${fontColor}88` }}
+                        >
+                          <span>#DEMO</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" /> 365 dias
+                          </span>
+                        </div>
                       </div>
                     </header>
 
                     {/* Stamps Area */}
                     <div 
-                      className="w-full rounded-[18px] p-4 flex flex-col items-center shadow-[inset_0_0_30px_rgba(0,0,0,0.1)]"
+                      className="w-full rounded-[25px] p-[clamp(16px,2.5vh,28px)_14px] flex flex-col items-center shadow-[inset_0_0_40px_rgba(0,0,0,0.1)]"
                       style={{ backgroundColor: fontColor }}
                     >
-                      <div className="grid grid-cols-5 gap-2 w-full justify-items-center mb-2">
+                      <div className="grid grid-cols-5 gap-[clamp(8px,1.8vh,14px)_8px] w-full justify-items-center mb-[clamp(8px,1.5vh,16px)]">
                         {stamps.map((filled, i) => (
                           <div key={i} className="stamp">
                             {getStampIcon(cardIcon, filled, cardBgColor)}
@@ -214,25 +236,70 @@ const Companies = () => {
                         ))}
                       </div>
                       <p 
-                        className="text-[10px] font-semibold text-center tracking-wide px-2 line-clamp-2"
+                        className="text-[clamp(10px,2.5vw,12px)] font-semibold text-center tracking-wide px-2"
                         style={{ color: `${cardBgColor}99` }}
                       >
                         {loyaltyText}
                       </p>
                     </div>
 
-                    {/* Footer */}
-                    <div className="flex items-center justify-between w-full px-2">
+                    {/* Stats Grid */}
+                    <div 
+                      className="w-full grid grid-cols-2 gap-3 py-[clamp(5px,1vh,8px)] border-y"
+                      style={{ borderColor: `${fontColor}20` }}
+                    >
                       <div 
-                        className="text-[9px] tracking-[1px] font-medium"
-                        style={{ color: `${fontColor}88` }}
+                        className="flex flex-col items-center justify-center py-1.5 border-r"
+                        style={{ borderColor: `${fontColor}20` }}
                       >
-                        {requiredStamps} SELOS
+                        <span 
+                          className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] mb-0.5"
+                          style={{ color: `${fontColor}88` }}
+                        >
+                          Faltam
+                        </span>
+                        <div className="text-[clamp(18px,4.5vw,24px)] font-extrabold" style={{ color: fontColor }}>
+                          {requiredStamps - sampleFilledStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>selos</span>
+                        </div>
                       </div>
-                      <div className="text-[7px] tracking-[1.5px] font-bold" style={{ color: `${fontColor}66` }}>
+                      <div className="flex flex-col items-center justify-center py-1.5">
+                        <span 
+                          className="text-[clamp(9px,2vw,11px)] uppercase tracking-[1.5px] mb-0.5"
+                          style={{ color: `${fontColor}88` }}
+                        >
+                          Total
+                        </span>
+                        <div 
+                          className="text-[clamp(18px,4.5vw,24px)] font-extrabold"
+                          style={{ color: fontColor }}
+                        >
+                          {sampleFilledStamps} <span className="text-[clamp(10px,2.5vw,12px)] font-normal ml-0.5" style={{ color: `${fontColor}cc` }}>selos</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-auto flex flex-col items-center gap-[clamp(6px,1.2vh,10px)] w-full">
+                      <div 
+                        className="font-space-mono text-[clamp(14px,4vw,20px)] font-bold tracking-[clamp(3px,1vw,5px)] opacity-90"
+                        style={{ color: fontColor }}
+                      >
+                        DEMO123
+                      </div>
+                      
+                      <div className="bg-white p-2 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-[clamp(80px,20vw,100px)] h-[clamp(80px,20vw,100px)] flex items-center justify-center">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(baseUrl)}`}
+                          alt="QR Code" 
+                          className="w-full h-auto" 
+                        />
+                      </div>
+                      
+                      <div className="text-[clamp(7px,1.8vw,9px)] tracking-[1.5px] text-[#444] font-bold">
                         FIDELICARD ®
                       </div>
                     </div>
+
                   </div>
                 </div>
               );
