@@ -430,15 +430,23 @@ const Admin = () => {
       if (error) throw error;
 
       if (cardData?.events) {
-        const eventsArray = cardData.events.split(",").filter(Boolean);
-        const parsedEvents = eventsArray.map((event: string, index: number) => {
-          const eventDate = new Date(event.trim());
-          return {
-            stampNumber: index + 1,
-            date: eventDate.toLocaleDateString('pt-BR'),
-            time: eventDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-          };
-        });
+        // Format: 1selo='19/12/2025 | 17:49';2selo='20/12/2025 | 07:26'
+        const eventsArray = cardData.events.split(";").filter(Boolean);
+        const parsedEvents = eventsArray.map((event: string) => {
+          // Extract stamp number and date from format: Xselo='DD/MM/YYYY | HH:MM'
+          const stampMatch = event.match(/(\d+)selo='(.+?)'/);
+          if (stampMatch) {
+            const stampNumber = parseInt(stampMatch[1]);
+            const dateTimeStr = stampMatch[2]; // "19/12/2025 | 17:49"
+            const [datePart, timePart] = dateTimeStr.split(" | ");
+            return {
+              stampNumber,
+              date: datePart || "-",
+              time: timePart || "-"
+            };
+          }
+          return { stampNumber: 0, date: "-", time: "-" };
+        }).filter(e => e.stampNumber > 0).sort((a, b) => a.stampNumber - b.stampNumber);
         setClientHistoryData(parsedEvents);
       }
     } catch (error) {
