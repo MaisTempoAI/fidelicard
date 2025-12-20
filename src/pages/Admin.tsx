@@ -168,6 +168,9 @@ const Admin = () => {
   const [clientHistoryData, setClientHistoryData] = useState<{ stampNumber: number; date: string; time: string }[]>([]);
   const [clientHistoryName, setClientHistoryName] = useState("");
   const [loadingClientHistory, setLoadingClientHistory] = useState(false);
+  const [historyEditMode, setHistoryEditMode] = useState(false);
+  const [historyClientCardId, setHistoryClientCardId] = useState<number | null>(null);
+  const [savingHistory, setSavingHistory] = useState(false);
 
   // Delete client
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -419,6 +422,8 @@ const Admin = () => {
     setShowClientHistory(true);
     setLoadingClientHistory(true);
     setClientHistoryData([]);
+    setHistoryEditMode(false);
+    setHistoryClientCardId(client.cardId);
 
     try {
       const { data: cardData, error } = await supabase
@@ -454,6 +459,50 @@ const Admin = () => {
       toast.error("Erro ao carregar histórico");
     } finally {
       setLoadingClientHistory(false);
+    }
+  };
+
+  // Update stamp date in history
+  const updateStampDate = (stampNumber: number, field: 'date' | 'time', value: string) => {
+    setClientHistoryData(prev => 
+      prev.map(s => s.stampNumber === stampNumber ? { ...s, [field]: value } : s)
+    );
+  };
+
+  // Delete individual stamp from history
+  const deleteStamp = (stampNumber: number) => {
+    setClientHistoryData(prev => prev.filter(s => s.stampNumber !== stampNumber));
+  };
+
+  // Save history changes
+  const saveHistoryChanges = async () => {
+    if (!historyClientCardId) return;
+    setSavingHistory(true);
+
+    try {
+      // Rebuild events string with renumbered stamps
+      const newEvents = clientHistoryData
+        .map((s, idx) => `${idx + 1}selo='${s.date} | ${s.time}'`)
+        .join(";");
+
+      const { error } = await supabase
+        .from("CRF-Cards")
+        .update({ 
+          events: newEvents || null,
+          custamp: clientHistoryData.length
+        })
+        .eq("id", historyClientCardId);
+
+      if (error) throw error;
+
+      toast.success("Histórico atualizado");
+      setHistoryEditMode(false);
+      loadClients(); // Refresh client list
+    } catch (error) {
+      console.error("Error saving history:", error);
+      toast.error("Erro ao salvar histórico");
+    } finally {
+      setSavingHistory(false);
     }
   };
 
@@ -1472,12 +1521,28 @@ END:VCARD`;
       />
 
       {/* Client History Dialog */}
-      <Dialog open={showClientHistory} onOpenChange={setShowClientHistory}>
+      <Dialog open={showClientHistory} onOpenChange={(open) => {
+        setShowClientHistory(open);
+        if (!open) setHistoryEditMode(false);
+      }}>
         <DialogContent className="bg-[#121212] border-white/10 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Eye className="w-5 h-5 text-blue-400" />
-              Histórico de Selos
+            <DialogTitle className="text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-400" />
+                Histórico de Selos
+              </div>
+              {!loadingClientHistory && clientHistoryData.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setHistoryEditMode(!historyEditMode)}
+                  className={`${historyEditMode ? 'text-orange-500 hover:text-orange-400' : 'text-gray-400 hover:text-white'}`}
+                >
+                  <Pencil className="w-4 h-4 mr-1" />
+                  {historyEditMode ? 'Cancelar' : 'Editar'}
+                </Button>
+              )}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
@@ -1494,22 +1559,62 @@ END:VCARD`;
                 <p className="text-gray-400">Nenhum selo registrado</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {clientHistoryData.map((event, idx) => (
-                  <div 
-                    key={idx}
-                    className="flex items-center gap-3 bg-[#1a1a1a] rounded-xl p-4"
+              <>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {clientHistoryData.map((event, idx) => (
+                    <div 
+                      key={idx}
+                      className="flex items-center gap-3 bg-[#1a1a1a] rounded-xl p-4"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                        <Star className="w-5 h-5 text-orange-500" />
+                      </div>
+                      {historyEditMode ? (
+                        <div className="flex-1 space-y-2">
+                          <p className="text-white font-medium">{event.stampNumber}º Selo</p>
+                          <div className="flex gap-2">
+                            <Input
+                              value={event.date}
+                              onChange={(e) => updateStampDate(event.stampNumber, 'date', e.target.value)}
+                              placeholder="DD/MM/YYYY"
+                              className="bg-[#252525] border-0 text-white h-9 rounded-lg text-sm flex-1"
+                            />
+                            <Input
+                              value={event.time}
+                              onChange={(e) => updateStampDate(event.stampNumber, 'time', e.target.value)}
+                              placeholder="HH:MM"
+                              className="bg-[#252525] border-0 text-white h-9 rounded-lg text-sm w-20"
+                            />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => deleteStamp(event.stampNumber)}
+                              className="h-9 w-9 text-red-400 hover:text-red-500 hover:bg-red-500/10 flex-shrink-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1">
+                          <p className="text-white font-medium text-lg">{event.stampNumber}º Selo</p>
+                          <p className="text-gray-400 text-sm">{event.date} às {event.time}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {historyEditMode && (
+                  <Button
+                    onClick={saveHistoryChanges}
+                    disabled={savingHistory}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white h-10 rounded-xl"
                   >
-                    <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-                      <Star className="w-5 h-5 text-orange-500" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium text-lg">{event.stampNumber}º Selo</p>
-                      <p className="text-gray-400 text-sm">{event.date} às {event.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    {savingHistory ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Alterações"}
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </DialogContent>
