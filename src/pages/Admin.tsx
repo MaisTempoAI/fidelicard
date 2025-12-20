@@ -390,7 +390,7 @@ const Admin = () => {
 
   const filteredCompletedCards = showRescuedOnly 
     ? completedCards.filter(c => c.rescued) 
-    : completedCards;
+    : completedCards.filter(c => !c.rescued);
 
   const handleOpenCoCardForm = (coCard?: CoCard) => {
     if (coCard) {
@@ -1195,11 +1195,11 @@ END:VCARD`;
               <Button
                 onClick={() => setShowRescuedOnly(!showRescuedOnly)}
                 className={`${showRescuedOnly 
-                  ? 'bg-purple-500 hover:bg-purple-600 text-white' 
-                  : 'bg-[#252525] text-gray-400 hover:bg-[#2a2a2a]'
+                  ? 'bg-yellow-500 hover:bg-yellow-600 text-black' 
+                  : 'bg-purple-500 hover:bg-purple-600 text-white'
                 } rounded-xl px-4 py-2 text-sm font-bold`}
               >
-                RESGATADOS
+                {showRescuedOnly ? 'AGUARDANDO' : 'RESGATADOS'}
               </Button>
             </div>
 
@@ -1212,12 +1212,12 @@ END:VCARD`;
               <div className="text-center py-12">
                 <Gift className="w-12 h-12 mx-auto text-gray-600 mb-2" />
                 <p className="text-gray-400">
-                  {showRescuedOnly ? "Nenhum cartão resgatado" : "Nenhum cartão completo"}
+                  {showRescuedOnly ? "Nenhum cartão resgatado" : "Nenhum cartão aguardando"}
                 </p>
                 <p className="text-xs text-gray-500">
                   {showRescuedOnly 
                     ? "Os cartões resgatados aparecerão aqui" 
-                    : "Os cartões completos aparecerão aqui"
+                    : "Os cartões aguardando resgate aparecerão aqui"
                   }
                 </p>
               </div>
