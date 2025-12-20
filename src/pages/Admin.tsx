@@ -76,7 +76,7 @@ interface CoCardForm {
   active: boolean;
 }
 
-type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export' | 'stamps';
+type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export' | 'stamps' | 'completed';
 
 interface StampEvent {
   cardId: number;
@@ -85,6 +85,16 @@ interface StampEvent {
   stampNumber: number;
   date: string;
   time: string;
+}
+
+interface CompletedCard {
+  cardId: number;
+  clientName: string;
+  clientPhone: string;
+  events: { stampNumber: number; date: string; time: string }[];
+  completed: boolean;
+  rescued: boolean;
+  completedAt?: string;
 }
 
 const Admin = () => {
@@ -137,6 +147,11 @@ const Admin = () => {
   // Stamps view
   const [stampsData, setStampsData] = useState<StampEvent[]>([]);
   const [loadingStamps, setLoadingStamps] = useState(false);
+
+  // Completed cards view
+  const [completedCards, setCompletedCards] = useState<CompletedCard[]>([]);
+  const [loadingCompleted, setLoadingCompleted] = useState(false);
+  const [showRescuedOnly, setShowRescuedOnly] = useState(false);
 
   const companyId = localStorage.getItem("admin_company_id");
   const companyName = localStorage.getItem("admin_company_name") || "Minha Empresa";
@@ -279,6 +294,79 @@ const Admin = () => {
     await loadStampsData();
   };
 
+  const loadCompletedCards = async () => {
+    if (!companyId) return;
+    setLoadingCompleted(true);
+    
+    try {
+      // Get all completed cards for this company's clients
+      const { data: cards, error } = await supabase
+        .from("CRF-Cards")
+        .select("id, events, idclient, completed, rescued, completedat")
+        .eq("completed", true);
+      
+      if (error) throw error;
+      
+      const completedList: CompletedCard[] = [];
+      
+      for (const card of cards || []) {
+        // Find client for this card
+        const client = clients.find(c => c.cardId === card.id);
+        if (!client) continue;
+        
+        // Parse events: "1selo='19/12/2025 | 14:17';2selo='19/12/2025 | 14:18'"
+        const events: { stampNumber: number; date: string; time: string }[] = [];
+        
+        if (card.events) {
+          const entries = card.events.split(';');
+          for (const entry of entries) {
+            const match = entry.match(/(\d+)(?:selo|carimbo)='(\d{2}\/\d{2}\/\d{4}) \| (\d{2}:\d{2})'/);
+            if (match) {
+              events.push({
+                stampNumber: parseInt(match[1]),
+                date: match[2],
+                time: match[3],
+              });
+            }
+          }
+        }
+        
+        // Sort events by stamp number
+        events.sort((a, b) => a.stampNumber - b.stampNumber);
+        
+        completedList.push({
+          cardId: card.id,
+          clientName: client.nome || 'Cliente',
+          clientPhone: client.phone || '',
+          events,
+          completed: card.completed || false,
+          rescued: card.rescued || false,
+          completedAt: card.completedat || undefined,
+        });
+      }
+      
+      // Sort by completedAt (most recent first)
+      completedList.sort((a, b) => {
+        if (!a.completedAt && !b.completedAt) return 0;
+        if (!a.completedAt) return 1;
+        if (!b.completedAt) return -1;
+        return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime();
+      });
+      
+      setCompletedCards(completedList);
+    } catch (err) {
+      console.error('Error loading completed cards:', err);
+      toast.error('Erro ao carregar cartões completos');
+    }
+    
+    setLoadingCompleted(false);
+  };
+
+  const handleOpenCompletedView = async () => {
+    setActiveView('completed');
+    await loadCompletedCards();
+  };
+
   const getGroupedStamps = () => {
     const groups: { [key: string]: StampEvent[] } = {};
     const today = new Date();
@@ -299,6 +387,10 @@ const Admin = () => {
     
     return groups;
   };
+
+  const filteredCompletedCards = showRescuedOnly 
+    ? completedCards.filter(c => c.rescued) 
+    : completedCards;
 
   const handleOpenCoCardForm = (coCard?: CoCard) => {
     if (coCard) {
@@ -652,7 +744,10 @@ END:VCARD`;
               <p className="text-xl font-bold text-white">{totalStamps}</p>
               <p className="text-[10px] text-gray-400">Selos</p>
             </div>
-              <div className="bg-[#1a1a1a] rounded-2xl p-4 text-center">
+              <div 
+                className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+                onClick={() => handleOpenCompletedView()}
+              >
                 <Gift className="w-5 h-5 mx-auto mb-1 text-orange-500" />
                 <p className="text-xl font-bold text-white">{completedCount}</p>
                 <p className="text-[10px] text-gray-400">Completos</p>
@@ -1078,6 +1173,116 @@ END:VCARD`;
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Completed Cards View */}
+        {activeView === 'completed' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold text-white">Cartões Completos</h2>
+                <Badge className="bg-green-500/20 text-green-500 border-0">
+                  {completedCount}
+                </Badge>
+              </div>
+              <Button
+                onClick={() => setShowRescuedOnly(!showRescuedOnly)}
+                className={`${showRescuedOnly 
+                  ? 'bg-purple-500 hover:bg-purple-600 text-white' 
+                  : 'bg-[#252525] text-gray-400 hover:bg-[#2a2a2a]'
+                } rounded-xl px-4 py-2 text-sm font-bold`}
+              >
+                RESGATADOS
+              </Button>
+            </div>
+
+            {loadingCompleted ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-500" />
+                <p className="text-gray-400 mt-2">Carregando...</p>
+              </div>
+            ) : filteredCompletedCards.length === 0 ? (
+              <div className="text-center py-12">
+                <Gift className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+                <p className="text-gray-400">
+                  {showRescuedOnly ? "Nenhum cartão resgatado" : "Nenhum cartão completo"}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {showRescuedOnly 
+                    ? "Os cartões resgatados aparecerão aqui" 
+                    : "Os cartões completos aparecerão aqui"
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredCompletedCards.map((card) => (
+                  <div 
+                    key={card.cardId}
+                    className="bg-[#1a1a1a] rounded-2xl p-4 space-y-4"
+                  >
+                    {/* Client Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <Gift className="w-6 h-6 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="text-white font-bold text-lg">{card.clientName}</p>
+                          {card.clientPhone && (
+                            <a 
+                              href={`https://api.whatsapp.com/send/?phone=55${card.clientPhone.replace(/\D/g, '')}&text=Mensagem&type=phone_number&app_absent=0`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-500 font-bold flex items-center gap-1 hover:text-green-400"
+                            >
+                              <Phone className="w-3 h-3" />
+                              {card.clientPhone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={card.rescued 
+                        ? "bg-purple-500/20 text-purple-400 border-0" 
+                        : "bg-yellow-500/20 text-yellow-400 border-0"
+                      }>
+                        {card.rescued ? "Resgatado" : "Aguardando"}
+                      </Badge>
+                    </div>
+
+                    {/* Stamps History */}
+                    <div className="border-t border-white/10 pt-4">
+                      <p className="text-xs text-gray-400 mb-3 font-medium">Histórico de selos:</p>
+                      <div className="space-y-2">
+                        {card.events.length > 0 ? (
+                          card.events.map((event, idx) => (
+                            <div 
+                              key={idx}
+                              className="flex items-center gap-3 bg-[#252525] rounded-xl p-3"
+                            >
+                              <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                                <Star className="w-5 h-5 text-orange-500" />
+                              </div>
+                              <span className="text-white font-bold text-base">{event.stampNumber}º selo</span>
+                              <div className="ml-auto flex items-center gap-3 text-right">
+                                <span className="text-gray-300 text-sm">{event.date}</span>
+                                <span className="text-gray-400 text-sm">{event.time}</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-sm text-center py-2">
+                            Sem histórico de selos
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
