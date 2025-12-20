@@ -24,6 +24,7 @@ interface CoCardForm {
   seccolour: string;
   icon: string;
   active: boolean;
+  renewable: boolean;
 }
 
 interface CoCardFormModalProps {
@@ -146,6 +147,20 @@ export const CoCardFormModal = ({
                     className="bg-[#252525] border-0 text-white h-10"
                   />
                 </div>
+              </div>
+              
+              {/* Renewable Switch */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#252525]">
+                <div className="space-y-0.5">
+                  <Label className="text-sm text-white">Renovável</Label>
+                  <p className="text-[10px] text-gray-500">
+                    Se desativado, cliente não pode criar outro após completar
+                  </p>
+                </div>
+                <Switch
+                  checked={coCardForm.renewable}
+                  onCheckedChange={(checked) => setCoCardForm({...coCardForm, renewable: checked})}
+                />
               </div>
             </div>
           ) : (

@@ -85,6 +85,7 @@ interface CoCardForm {
   seccolour: string;
   icon: string;
   active: boolean;
+  renewable: boolean;
 }
 
 type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export' | 'stamps' | 'completed';
@@ -149,6 +150,7 @@ const Admin = () => {
     seccolour: "#dcd0c0",
     icon: "armchair",
     active: true,
+    renewable: true,
   });
 
   // Export
@@ -597,6 +599,7 @@ const Admin = () => {
         seccolour: coCard.seccolour || "#dcd0c0",
         icon: coCard.icon || "armchair",
         active: coCard.active ?? true,
+        renewable: coCard.renewable ?? true,
       });
     } else {
       setCoCardForm({
@@ -609,6 +612,7 @@ const Admin = () => {
         seccolour: "#dcd0c0",
         icon: "armchair",
         active: true,
+        renewable: true,
       });
     }
     setShowCoCardForm(true);
@@ -634,6 +638,7 @@ const Admin = () => {
           seccolour: coCardForm.seccolour,
           icon: coCardForm.icon,
           active: coCardForm.active,
+          renewable: coCardForm.renewable,
         });
         if (success) {
           toast.success("Cartão atualizado!");
@@ -651,6 +656,7 @@ const Admin = () => {
           seccolour: coCardForm.seccolour,
           icon: coCardForm.icon,
           active: coCardForm.active,
+          renewable: coCardForm.renewable,
         });
         if (coCard) {
           toast.success("Cartão criado!");
