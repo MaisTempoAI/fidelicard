@@ -182,6 +182,10 @@ const Admin = () => {
   const [nameSortOrder, setNameSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc'); // default: most recent first
 
+  // Stamps sorting
+  const [stampsNameSortOrder, setStampsNameSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [stampsDateSortOrder, setStampsDateSortOrder] = useState<'desc' | 'asc'>('desc');
+
   const companyId = localStorage.getItem("admin_company_id");
   const companyName = localStorage.getItem("admin_company_name") || "Minha Empresa";
   const requiredStamps = parseInt(localStorage.getItem("admin_company_stamps") || "10");
@@ -396,6 +400,36 @@ const Admin = () => {
     await loadCompletedCards();
   };
 
+  const getSortedStampsData = () => {
+    let sorted = [...stampsData];
+    
+    if (stampsNameSortOrder !== null) {
+      // Sort by name
+      sorted.sort((a, b) => {
+        const nameA = a.clientName.toLowerCase();
+        const nameB = b.clientName.toLowerCase();
+        if (stampsNameSortOrder === 'asc') {
+          return nameA.localeCompare(nameB, 'pt-BR');
+        } else {
+          return nameB.localeCompare(nameA, 'pt-BR');
+        }
+      });
+    } else {
+      // Sort by date/time
+      sorted.sort((a, b) => {
+        const [dayA, monthA, yearA] = a.date.split('/').map(Number);
+        const [dayB, monthB, yearB] = b.date.split('/').map(Number);
+        const dateA = new Date(yearA, monthA - 1, dayA, ...a.time.split(':').map(Number));
+        const dateB = new Date(yearB, monthB - 1, dayB, ...b.time.split(':').map(Number));
+        return stampsDateSortOrder === 'desc' 
+          ? dateB.getTime() - dateA.getTime()
+          : dateA.getTime() - dateB.getTime();
+      });
+    }
+    
+    return sorted;
+  };
+
   const getGroupedStamps = () => {
     const groups: { [key: string]: StampEvent[] } = {};
     const today = new Date();
@@ -405,7 +439,9 @@ const Admin = () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = `${yesterday.getDate().toString().padStart(2, '0')}/${(yesterday.getMonth() + 1).toString().padStart(2, '0')}/${yesterday.getFullYear()}`;
     
-    stampsData.forEach(stamp => {
+    const sortedData = getSortedStampsData();
+    
+    sortedData.forEach(stamp => {
       let groupKey = stamp.date;
       if (stamp.date === todayStr) groupKey = 'HOJE';
       else if (stamp.date === yesterdayStr) groupKey = 'ONTEM';
@@ -1367,9 +1403,46 @@ END:VCARD`;
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Histórico de Selos</h2>
-              <Badge className="bg-orange-500/20 text-orange-500 border-0">
-                {totalStamps} total
-              </Badge>
+              <div className="flex items-center gap-2">
+                {/* Name sort button */}
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => {
+                    if (stampsNameSortOrder === null) {
+                      setStampsNameSortOrder('asc');
+                    } else if (stampsNameSortOrder === 'asc') {
+                      setStampsNameSortOrder('desc');
+                    } else {
+                      setStampsNameSortOrder(null);
+                    }
+                  }}
+                  className={`w-9 h-9 rounded-xl border-white/20 ${stampsNameSortOrder !== null ? 'bg-orange-500 border-orange-500 text-white' : 'text-white hover:bg-white/10'}`}
+                  title={stampsNameSortOrder === 'asc' ? 'A-Z' : stampsNameSortOrder === 'desc' ? 'Z-A' : 'Ordenar por nome'}
+                >
+                  {stampsNameSortOrder === 'desc' ? (
+                    <ArrowUpZA className="w-4 h-4" />
+                  ) : (
+                    <ArrowDownAZ className="w-4 h-4" />
+                  )}
+                </Button>
+                {/* Date sort button */}
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => {
+                    setStampsNameSortOrder(null);
+                    setStampsDateSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+                  }}
+                  className={`w-9 h-9 rounded-xl border-white/20 ${stampsNameSortOrder === null ? 'bg-orange-500 border-orange-500 text-white' : 'text-white hover:bg-white/10'}`}
+                  title={stampsDateSortOrder === 'desc' ? 'Mais recente primeiro' : 'Mais antigo primeiro'}
+                >
+                  <CalendarDays className="w-4 h-4" />
+                </Button>
+                <Badge className="bg-orange-500/20 text-orange-500 border-0">
+                  {totalStamps} total
+                </Badge>
+              </div>
             </div>
 
             {loadingStamps ? (
