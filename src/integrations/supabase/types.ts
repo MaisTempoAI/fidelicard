@@ -140,6 +140,7 @@ export type Database = {
           name: string | null
           pricolour: string | null
           prod: string | null
+          renewable: boolean | null
           seccolour: string | null
           stamps: number | null
           text: string | null
@@ -155,6 +156,7 @@ export type Database = {
           name?: string | null
           pricolour?: string | null
           prod?: string | null
+          renewable?: boolean | null
           seccolour?: string | null
           stamps?: number | null
           text?: string | null
@@ -170,6 +172,7 @@ export type Database = {
           name?: string | null
           pricolour?: string | null
           prod?: string | null
+          renewable?: boolean | null
           seccolour?: string | null
           stamps?: number | null
           text?: string | null
