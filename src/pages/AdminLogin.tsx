@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { authenticateCompany } from "@/hooks/useAdmin";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const handleBack = () => {
     navigate("/");
@@ -17,6 +18,24 @@ const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Pre-fill credentials from URL params (coming from registration)
+  useEffect(() => {
+    const userParam = searchParams.get("user");
+    const passParam = searchParams.get("pass");
+    
+    if (userParam) {
+      setEmail(decodeURIComponent(userParam));
+    }
+    if (passParam) {
+      setPassword(decodeURIComponent(passParam));
+    }
+    
+    // Clear URL params for security
+    if (userParam || passParam) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

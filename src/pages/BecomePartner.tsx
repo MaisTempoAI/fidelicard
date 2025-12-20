@@ -3,9 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, Sparkles, CheckCircle, Mail, Phone, Loader2, Copy, LogIn } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, CheckCircle, Mail, Phone, Loader2, Lock, User, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+const formatPhoneNumber = (value: string): string => {
+  const numbers = value.replace(/\D/g, "");
+  
+  if (numbers.length <= 2) {
+    return numbers.length > 0 ? `(${numbers}` : "";
+  } else if (numbers.length <= 7) {
+    return `(${numbers.slice(0, 2)})${numbers.slice(2)}`;
+  } else {
+    return `(${numbers.slice(0, 2)})${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+  }
+};
 
 const BecomePartner = () => {
   const navigate = useNavigate();
@@ -13,17 +25,26 @@ const BecomePartner = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactType, setContactType] = useState<"email" | "telefone" | null>(null);
   const [contactValue, setContactValue] = useState("");
-  const [generatedCredentials, setGeneratedCredentials] = useState<{ user: string; password: string } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [formData, setFormData] = useState({
     ownerName: "",
     companyName: "",
     businessType: "",
     address: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setContactValue(formatted);
   };
 
   const validateStep1 = () => {
@@ -62,37 +83,62 @@ const BecomePartner = () => {
     return true;
   };
 
+  const validateStep3 = () => {
+    if (!formData.username.trim()) {
+      toast.error("Informe o usuário");
+      return false;
+    }
+    if (!formData.password.trim()) {
+      toast.error("Informe a senha");
+      return false;
+    }
+    if (formData.password.length < 4) {
+      toast.error("A senha deve ter no mínimo 4 caracteres");
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return false;
+    }
+    return true;
+  };
+
   const handleNext = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
+    } else if (step === 2 && validateStep2()) {
+      // Pre-fill username with contact value
+      setFormData(prev => ({
+        ...prev,
+        username: prev.username || contactValue.trim()
+      }));
+      setStep(3);
     }
   };
 
   const handleBack = () => {
-    if (step === 2) {
-      setStep(1);
+    if (step > 1) {
+      setStep(step - 1);
     }
   };
 
   const handleSubmit = async () => {
-    if (!validateStep2()) return;
+    if (!validateStep3()) return;
     
     setIsSubmitting(true);
 
     try {
-      const userLogin = contactValue.trim();
-      const password = "1234";
-
       const { error } = await supabase
         .from("CRF-Companies")
         .insert({
           name: formData.companyName.trim(),
           email: contactType === "email" ? contactValue.trim() : null,
           phone: contactType === "telefone" ? contactValue.trim() : null,
-          type: formData.businessType.trim(),
+          slug: formData.businessType.trim(),
+          type: "DEFAULT",
           address: formData.address.trim(),
-          user: userLogin,
-          password: password,
+          user: formData.username.trim(),
+          password: formData.password,
           active: true,
         });
 
@@ -103,20 +149,19 @@ const BecomePartner = () => {
         return;
       }
 
-      setGeneratedCredentials({ user: userLogin, password });
-      setStep(3);
-      toast.success("Cadastro realizado com sucesso!");
+      toast.success("🎉 Parabéns! Agora você é um Parceiro!", {
+        duration: 3000,
+      });
+
+      // Redirect to login with credentials pre-filled
+      setTimeout(() => {
+        navigate(`/admin-login?user=${encodeURIComponent(formData.username.trim())}&pass=${encodeURIComponent(formData.password)}`);
+      }, 1500);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Erro ao cadastrar. Tente novamente.");
-    } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copiado!`);
   };
 
   return (
@@ -147,21 +192,19 @@ const BecomePartner = () => {
           <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
             Seja um Parceiro
           </h1>
-          {step < 3 && (
-            <p className="text-white/50 text-sm mt-1">
-              Ganhe <span className="text-amber-400 font-medium">30 dias grátis</span>
-            </p>
-          )}
+          <p className="text-white/50 text-sm mt-1">
+            Ganhe <span className="text-amber-400 font-medium">30 dias grátis</span>
+          </p>
         </div>
 
-        {/* Progress Indicator */}
-        {step < 3 && (
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className={`w-2.5 h-2.5 rounded-full transition-all ${step >= 1 ? "bg-amber-500" : "bg-white/20"}`} />
-            <div className={`w-8 h-0.5 transition-all ${step >= 2 ? "bg-amber-500" : "bg-white/20"}`} />
-            <div className={`w-2.5 h-2.5 rounded-full transition-all ${step >= 2 ? "bg-amber-500" : "bg-white/20"}`} />
-          </div>
-        )}
+        {/* Progress Indicator - 3 steps */}
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <div className={`w-2.5 h-2.5 rounded-full transition-all ${step >= 1 ? "bg-amber-500" : "bg-white/20"}`} />
+          <div className={`w-6 h-0.5 transition-all ${step >= 2 ? "bg-amber-500" : "bg-white/20"}`} />
+          <div className={`w-2.5 h-2.5 rounded-full transition-all ${step >= 2 ? "bg-amber-500" : "bg-white/20"}`} />
+          <div className={`w-6 h-0.5 transition-all ${step >= 3 ? "bg-amber-500" : "bg-white/20"}`} />
+          <div className={`w-2.5 h-2.5 rounded-full transition-all ${step >= 3 ? "bg-amber-500" : "bg-white/20"}`} />
+        </div>
 
         {/* Step 1 - Contact Details */}
         {step === 1 && (
@@ -237,9 +280,10 @@ const BecomePartner = () => {
                   id="contactValue"
                   type={contactType === "email" ? "email" : "tel"}
                   value={contactValue}
-                  onChange={(e) => setContactValue(e.target.value)}
+                  onChange={contactType === "telefone" ? handlePhoneChange : (e) => setContactValue(e.target.value)}
                   className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12"
-                  placeholder={contactType === "email" ? "seu@email.com" : "(00) 00000-0000"}
+                  placeholder={contactType === "email" ? "seu@email.com" : "(00)00000-0000"}
+                  maxLength={contactType === "telefone" ? 14 : undefined}
                 />
               </div>
             )}
@@ -285,7 +329,95 @@ const BecomePartner = () => {
               <Button
                 onClick={handleBack}
                 variant="outline"
-                className="flex-1 h-12 rounded-xl border-white/20 text-white/70 hover:bg-white/5"
+                className="flex-1 h-12 rounded-xl border-amber-500/30 text-white bg-transparent hover:bg-amber-500/10 hover:border-amber-500/50"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+              <Button
+                onClick={handleNext}
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-semibold h-12 rounded-xl"
+              >
+                Avançar
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3 - Create Credentials */}
+        {step === 3 && (
+          <div className="bg-[#252540] border border-amber-500/20 rounded-2xl p-6 space-y-5">
+            <div className="text-center mb-2">
+              <p className="text-white/70 text-sm">Crie seu acesso ao painel</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-white/80 text-sm">Usuário *</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Input
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12 pl-10"
+                  placeholder="Email ou telefone"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-white/80 text-sm">Senha *</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12 pl-10 pr-10"
+                  placeholder="Mínimo 4 caracteres"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-white/80 text-sm">Confirmar Senha *</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12 pl-10 pr-10"
+                  placeholder="Repita a senha"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={handleBack}
+                variant="outline"
+                className="flex-1 h-12 rounded-xl border-amber-500/30 text-white bg-transparent hover:bg-amber-500/10 hover:border-amber-500/50"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
@@ -298,7 +430,7 @@ const BecomePartner = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Cadastrando...
+                    Finalizando...
                   </>
                 ) : (
                   <>
@@ -308,66 +440,6 @@ const BecomePartner = () => {
                 )}
               </Button>
             </div>
-          </div>
-        )}
-
-        {/* Step 3 - Success / Credentials */}
-        {step === 3 && generatedCredentials && (
-          <div className="bg-[#252540] border border-amber-500/20 rounded-2xl p-6 text-center space-y-5">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-2">
-              <CheckCircle className="w-8 h-8 text-green-400" />
-            </div>
-            
-            <div>
-              <h2 className="text-xl font-bold text-white mb-1">Cadastro Realizado!</h2>
-              <p className="text-white/50 text-sm">Use os dados abaixo para acessar seu painel</p>
-            </div>
-
-            <div className="bg-[#1a1a2e] rounded-xl p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-white/50 text-xs uppercase tracking-wide">Usuário</p>
-                  <p className="text-amber-400 font-medium text-lg">{generatedCredentials.user}</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => copyToClipboard(generatedCredentials.user, "Usuário")}
-                  className="text-white/50 hover:text-white hover:bg-white/10"
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-              
-              <div className="border-t border-white/10" />
-              
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <p className="text-white/50 text-xs uppercase tracking-wide">Senha</p>
-                  <p className="text-amber-400 font-medium text-lg">{generatedCredentials.password}</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => copyToClipboard(generatedCredentials.password, "Senha")}
-                  className="text-white/50 hover:text-white hover:bg-white/10"
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            <p className="text-amber-400/70 text-xs">
-              Guarde essas informações! Você pode alterar a senha depois no seu painel.
-            </p>
-
-            <Button
-              onClick={() => navigate("/admin-login")}
-              className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold h-12 rounded-xl"
-            >
-              <LogIn className="w-4 h-4 mr-2" />
-              Acessar meu Painel
-            </Button>
           </div>
         )}
       </div>
