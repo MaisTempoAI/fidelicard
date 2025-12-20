@@ -17,7 +17,8 @@ import {
 import { 
   Plus, QrCode, Search, Users, LogOut, Pencil, X, Check, Loader2, 
   Building, Gift, Trash2, CreditCard, Armchair, Star, Circle, 
-  Settings, Download, FileText, ChevronRight, Phone, Calendar, Eye
+  Settings, Download, FileText, ChevronRight, Phone, Calendar, Eye,
+  ArrowDownAZ, ArrowUpZA, CalendarDays
 } from "lucide-react";
 import {
   AlertDialog,
@@ -176,6 +177,10 @@ const Admin = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingClient, setDeletingClient] = useState<ClientWithCard | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Client sorting
+  const [nameSortOrder, setNameSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc'); // default: most recent first
 
   const companyId = localStorage.getItem("admin_company_id");
   const companyName = localStorage.getItem("admin_company_name") || "Minha Empresa";
@@ -803,9 +808,49 @@ END:VCARD`;
     setShowExportModal(false);
   };
 
-  const filteredClients = searchClients(clients, search);
+  // Sort and filter clients
+  const getSortedClients = () => {
+    let sorted = [...searchClients(clients, search)];
+    
+    if (nameSortOrder) {
+      sorted.sort((a, b) => {
+        const nameA = (a.nome || '').toLowerCase();
+        const nameB = (b.nome || '').toLowerCase();
+        return nameSortOrder === 'asc' 
+          ? nameA.localeCompare(nameB, 'pt-BR')
+          : nameB.localeCompare(nameA, 'pt-BR');
+      });
+    } else {
+      // Sort by date (created_at or id as fallback)
+      sorted.sort((a, b) => {
+        return dateSortOrder === 'desc' 
+          ? b.cardId - a.cardId  // Most recent first
+          : a.cardId - b.cardId; // Oldest first
+      });
+    }
+    
+    return sorted;
+  };
+
+  const filteredClients = getSortedClients();
   const totalStamps = clients.reduce((acc, c) => acc + (c.custamp || 0), 0);
   const completedCount = clients.filter(c => c.completed).length;
+
+  const toggleNameSort = () => {
+    if (nameSortOrder === null) {
+      setNameSortOrder('asc');
+      setDateSortOrder('desc'); // Reset date sort
+    } else if (nameSortOrder === 'asc') {
+      setNameSortOrder('desc');
+    } else {
+      setNameSortOrder(null); // Back to date sort
+    }
+  };
+
+  const toggleDateSort = () => {
+    setNameSortOrder(null); // Clear name sort
+    setDateSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+  };
 
   const menuItems = [
     { 
@@ -938,15 +983,51 @@ END:VCARD`;
         {/* Clients View */}
         {activeView === 'clients' && (
           <div className="space-y-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por telefone ou código..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 bg-[#1a1a1a] border-0 text-white placeholder:text-gray-500 h-12 rounded-xl"
-              />
+            {/* Search + Quick Filters */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por telefone ou código..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10 bg-[#1a1a1a] border-0 text-white placeholder:text-gray-500 h-12 rounded-xl"
+                />
+              </div>
+              
+              {/* Name Sort Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleNameSort}
+                className={`h-12 w-12 rounded-xl ${
+                  nameSortOrder 
+                    ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                    : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] hover:text-white'
+                }`}
+                title={nameSortOrder === 'asc' ? 'A → Z' : nameSortOrder === 'desc' ? 'Z → A' : 'Ordenar por nome'}
+              >
+                {nameSortOrder === 'desc' ? (
+                  <ArrowUpZA className="w-5 h-5" />
+                ) : (
+                  <ArrowDownAZ className="w-5 h-5" />
+                )}
+              </Button>
+              
+              {/* Date Sort Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleDateSort}
+                className={`h-12 w-12 rounded-xl ${
+                  !nameSortOrder 
+                    ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                    : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] hover:text-white'
+                }`}
+                title={dateSortOrder === 'desc' ? 'Mais recentes' : 'Mais antigos'}
+              >
+                <CalendarDays className="w-5 h-5" />
+              </Button>
             </div>
 
             {/* Client List */}
@@ -1549,7 +1630,7 @@ END:VCARD`;
         setShowClientHistory(open);
         if (!open) setHistoryEditMode(false);
       }}>
-        <DialogContent className="bg-[#121212] border-white/10 text-white max-w-md">
+        <DialogContent className="bg-[#121212] border-white/10 text-white max-w-md [&>button]:text-white [&>button]:w-8 [&>button]:h-8 [&>button]:hover:bg-white/10">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1558,13 +1639,13 @@ END:VCARD`;
               </div>
               {!loadingClientHistory && clientHistoryData.length > 0 && (
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="ghost"
                   onClick={() => setHistoryEditMode(!historyEditMode)}
-                  className={`${historyEditMode ? 'text-orange-500 hover:text-orange-400' : 'text-gray-400 hover:text-white'}`}
+                  className={`h-9 w-9 ${historyEditMode ? 'text-red-400 hover:text-red-500 hover:bg-red-500/10' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                  title={historyEditMode ? 'Cancelar' : 'Editar'}
                 >
-                  <Pencil className="w-4 h-4 mr-1" />
-                  {historyEditMode ? 'Cancelar' : 'Editar'}
+                  {historyEditMode ? <X className="w-5 h-5" /> : <Pencil className="w-4 h-4" />}
                 </Button>
               )}
             </DialogTitle>
@@ -1635,7 +1716,12 @@ END:VCARD`;
                     disabled={savingHistory}
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white h-10 rounded-xl"
                   >
-                    {savingHistory ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Alterações"}
+                    {savingHistory ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        Salvar
+                      </>
+                    )}
                   </Button>
                 )}
               </>
