@@ -1428,6 +1428,30 @@ END:VCARD`;
                       </Badge>
                     </div>
 
+                    {/* Rescue Button for Awaiting Cards */}
+                    {!card.rescued && (
+                      <Button
+                        onClick={async () => {
+                          const clientData = clients.find(c => c.cardId === card.cardId);
+                          if (clientData) {
+                            await handleRescueCard(clientData);
+                            loadCompletedCards();
+                          }
+                        }}
+                        disabled={rescuing === card.cardId}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white h-11 rounded-xl font-bold"
+                      >
+                        {rescuing === card.cardId ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Gift className="w-5 h-5 mr-2" />
+                            RESGATAR
+                          </>
+                        )}
+                      </Button>
+                    )}
+
                     {/* Stamps History */}
                     <div className="border-t border-white/10 pt-4">
                       <p className="text-xs text-gray-400 mb-3 font-medium">Histórico de selos:</p>
