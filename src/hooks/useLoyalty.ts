@@ -218,3 +218,41 @@ export const findOrCreateClientAndCard = async (phone: string, companyId: number
   const activeCard = cards.find(c => !c.completed) || cards[0];
   return { client, card: activeCard };
 };
+
+// Verifica se cliente pode criar cartão de uma promoção não renovável
+export const canClientCreateCardFromCoCard = async (
+  clientCardId: string,
+  coCard: { card: string | null; renewable: boolean | null }
+): Promise<boolean> => {
+  // Se a promoção é renovável (ou não definida), sempre pode criar
+  if (coCard.renewable !== false) return true;
+  
+  // Busca se o cliente já tem um cartão COMPLETADO desta promoção específica
+  const { data } = await supabase
+    .from("CRF-Cards")
+    .select("id")
+    .eq("idclient", clientCardId)
+    .eq("idemp", coCard.card) // Mesma promoção (CoCard UUID)
+    .eq("completed", true)
+    .limit(1);
+  
+  // Se encontrou cartão completado, NÃO pode criar outro
+  return !data || data.length === 0;
+};
+
+// Filtra promoções disponíveis para o cliente (exclui não-renováveis já completadas)
+export const filterAvailablePromotions = async (
+  clientCardId: string,
+  coCards: Array<{ id: number; card: string | null; renewable: boolean | null }>
+): Promise<number[]> => {
+  const availableIds: number[] = [];
+  
+  for (const coCard of coCards) {
+    const canCreate = await canClientCreateCardFromCoCard(clientCardId, coCard);
+    if (canCreate) {
+      availableIds.push(coCard.id);
+    }
+  }
+  
+  return availableIds;
+};

@@ -12,7 +12,8 @@ import {
   createNewCardForClient,
   createClient,
   createCard,
-  createCardFromCoCard
+  createCardFromCoCard,
+  filterAvailablePromotions
 } from "@/hooks/useLoyalty";
 import { getActiveCoCards, getFirstActiveCoCardColors, CoCard, CompanyColors } from "@/hooks/useCoCards";
 import { format } from "date-fns";
@@ -161,17 +162,28 @@ const ClientCards = () => {
         return;
       }
 
-      if (coCards.length === 1) {
-        // Apenas uma promoção, cria automaticamente
-        const coCard = coCards[0];
+      // Filtra promoções disponíveis (exclui não-renováveis já completadas)
+      const availableIds = await filterAvailablePromotions(cardId, coCards);
+      const availableCoCards = coCards.filter(c => availableIds.includes(c.id));
+
+      if (availableCoCards.length === 0) {
+        // Todas as promoções não-renováveis já foram completadas
+        toast.info("Você já completou todas as promoções disponíveis!");
+        setIsLoading(false);
+        return;
+      }
+
+      if (availableCoCards.length === 1) {
+        // Apenas uma promoção disponível, cria automaticamente
+        const coCard = availableCoCards[0];
         const newCard = await createCardFromCoCard(cardId, coCard);
         toast.success(`Cartão "${coCard.name}" criado!`);
         navigate(`/card/${newCard.cardcode}`);
         return;
       }
 
-      // Múltiplas promoções, mostra seleção
-      setActivePromotions(coCards);
+      // Múltiplas promoções disponíveis, mostra seleção
+      setActivePromotions(availableCoCards);
       setShowPromotionSelection(true);
     } catch (error) {
       console.error("Error checking promotions:", error);
@@ -236,17 +248,27 @@ const ClientCards = () => {
         return;
       }
 
-      if (coCards.length === 1) {
-        // Uma promoção, cria automaticamente
-        const coCard = coCards[0];
+      // Filtra promoções disponíveis (exclui não-renováveis já completadas)
+      const availableIds = await filterAvailablePromotions(clientCardId, coCards);
+      const availableCoCards = coCards.filter(c => availableIds.includes(c.id));
+
+      if (availableCoCards.length === 0) {
+        toast.info("Você já completou todas as promoções disponíveis!");
+        setIsCreating(false);
+        return;
+      }
+
+      if (availableCoCards.length === 1) {
+        // Uma promoção disponível, cria automaticamente
+        const coCard = availableCoCards[0];
         const newCard = await createCardFromCoCard(clientCardId, coCard);
         toast.success(`Cartão "${coCard.name}" criado!`);
         navigate(`/card/${newCard.cardcode}`);
         return;
       }
 
-      // Múltiplas promoções, mostra seleção
-      setActivePromotions(coCards);
+      // Múltiplas promoções disponíveis, mostra seleção
+      setActivePromotions(availableCoCards);
       setShowPromotionSelection(true);
     } catch (error) {
       console.error("Error creating card:", error);
