@@ -17,8 +17,18 @@ import {
 import { 
   Plus, QrCode, Search, Users, LogOut, Pencil, X, Check, Loader2, 
   Building, Gift, Trash2, CreditCard, Armchair, Star, Circle, 
-  Settings, Download, FileText, ChevronRight, Phone, Calendar
+  Settings, Download, FileText, ChevronRight, Phone, Calendar, Eye
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { 
   getCompanyClientsWithCards, 
@@ -152,6 +162,17 @@ const Admin = () => {
   const [completedCards, setCompletedCards] = useState<CompletedCard[]>([]);
   const [loadingCompleted, setLoadingCompleted] = useState(false);
   const [showRescuedOnly, setShowRescuedOnly] = useState(false);
+
+  // Client history popup
+  const [showClientHistory, setShowClientHistory] = useState(false);
+  const [clientHistoryData, setClientHistoryData] = useState<{ stampNumber: number; date: string; time: string }[]>([]);
+  const [clientHistoryName, setClientHistoryName] = useState("");
+  const [loadingClientHistory, setLoadingClientHistory] = useState(false);
+
+  // Delete client
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingClient, setDeletingClient] = useState<ClientWithCard | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const companyId = localStorage.getItem("admin_company_id");
   const companyName = localStorage.getItem("admin_company_name") || "Minha Empresa";
@@ -391,6 +412,79 @@ const Admin = () => {
   const filteredCompletedCards = showRescuedOnly 
     ? completedCards.filter(c => c.rescued) 
     : completedCards.filter(c => !c.rescued);
+
+  // Load client history (stamps)
+  const loadClientHistory = async (client: ClientWithCard) => {
+    setClientHistoryName(client.nome || "Cliente");
+    setShowClientHistory(true);
+    setLoadingClientHistory(true);
+    setClientHistoryData([]);
+
+    try {
+      const { data: cardData, error } = await supabase
+        .from("CRF-Cards")
+        .select("events")
+        .eq("id", client.cardId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (cardData?.events) {
+        const eventsArray = cardData.events.split(",").filter(Boolean);
+        const parsedEvents = eventsArray.map((event: string, index: number) => {
+          const eventDate = new Date(event.trim());
+          return {
+            stampNumber: index + 1,
+            date: eventDate.toLocaleDateString('pt-BR'),
+            time: eventDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          };
+        });
+        setClientHistoryData(parsedEvents);
+      }
+    } catch (error) {
+      console.error("Error loading client history:", error);
+      toast.error("Erro ao carregar histórico");
+    } finally {
+      setLoadingClientHistory(false);
+    }
+  };
+
+  // Delete client
+  const handleDeleteClient = async () => {
+    if (!deletingClient) return;
+    setIsDeleting(true);
+
+    try {
+      // Delete the card
+      const { error: cardError } = await supabase
+        .from("CRF-Cards")
+        .delete()
+        .eq("id", deletingClient.cardId);
+
+      if (cardError) throw cardError;
+
+      // Delete the client
+      const { error: clientError } = await supabase
+        .from("CRF-Clients")
+        .delete()
+        .eq("id", deletingClient.clientId);
+
+      if (clientError) throw clientError;
+
+      toast.success("Cliente excluído com sucesso");
+      setShowDeleteConfirm(false);
+      setDeletingClient(null);
+      setEditingClient(null);
+      
+      // Reload clients
+      loadClients();
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      toast.error("Erro ao excluir cliente");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleOpenCoCardForm = (coCard?: CoCard) => {
     if (coCard) {
@@ -862,6 +956,18 @@ END:VCARD`;
                         </div>
                         <div className="flex gap-2 pt-2">
                           <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              setDeletingClient(client);
+                              setShowDeleteConfirm(true);
+                            }}
+                            disabled={saving || isDeleting}
+                            className="h-9 w-9 text-red-400 hover:text-red-500 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                          <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setEditingClient(null)}
@@ -916,6 +1022,14 @@ END:VCARD`;
                           </div>
                           
                           <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 text-blue-400 hover:text-blue-500 hover:bg-blue-500/10"
+                              onClick={() => loadClientHistory(client)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="ghost"
@@ -1348,6 +1462,81 @@ END:VCARD`;
         onSave={handleSaveCoCard}
         saving={savingCoCard}
       />
+
+      {/* Client History Dialog */}
+      <Dialog open={showClientHistory} onOpenChange={setShowClientHistory}>
+        <DialogContent className="bg-[#121212] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Eye className="w-5 h-5 text-blue-400" />
+              Histórico de Selos
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-gray-400 text-sm">Cliente: <span className="text-white font-medium">{clientHistoryName}</span></p>
+            
+            {loadingClientHistory ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-orange-500" />
+                <p className="text-gray-400 mt-2 text-sm">Carregando...</p>
+              </div>
+            ) : clientHistoryData.length === 0 ? (
+              <div className="text-center py-8">
+                <Star className="w-10 h-10 mx-auto text-gray-600 mb-2" />
+                <p className="text-gray-400">Nenhum selo registrado</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {clientHistoryData.map((event, idx) => (
+                  <div 
+                    key={idx}
+                    className="flex items-center gap-3 bg-[#1a1a1a] rounded-xl p-4"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                      <Star className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-medium text-lg">{event.stampNumber}º Selo</p>
+                      <p className="text-gray-400 text-sm">{event.date} às {event.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="bg-[#121212] border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white text-center text-xl">
+              ⚠️ Atenção
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400 text-center text-base">
+              Deseja excluir esse cliente?
+              <br />
+              <span className="text-white font-medium">{deletingClient?.nome || "Cliente"}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3 sm:gap-3">
+            <AlertDialogCancel 
+              className="flex-1 bg-[#252525] text-gray-400 border-0 hover:bg-[#2a2a2a] hover:text-white"
+              disabled={isDeleting}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteClient}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
