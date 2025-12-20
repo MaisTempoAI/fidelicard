@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { 
   Building, Scissors, UtensilsCrossed, Car, Gift, Loader2, Palette, 
-  Plus, ToyBrick, Wrench, Triangle, Glasses, Footprints
+  Plus, ToyBrick, Wrench, Triangle, Glasses, Footprints,
+  Pizza, Coffee, WashingMachine, Monitor, ShieldCheck, Bell
 } from "lucide-react";
 
 interface CompanyDataForm {
@@ -48,6 +49,12 @@ const ICON_OPTIONS = [
   { value: 'pyramid', label: 'Pirâmide', Icon: Triangle },
   { value: 'glasses', label: 'Óculos', Icon: Glasses },
   { value: 'shoe', label: 'Sapato', Icon: Footprints },
+  { value: 'pizza', label: 'Pizzaria', Icon: Pizza },
+  { value: 'coffee', label: 'Café', Icon: Coffee },
+  { value: 'laundry', label: 'Lavanderia', Icon: WashingMachine },
+  { value: 'digital', label: 'Digital', Icon: Monitor },
+  { value: 'protection', label: 'Proteção', Icon: ShieldCheck },
+  { value: 'alarm', label: 'Alarme', Icon: Bell },
 ];
 
 const getIconComponent = (iconValue: string) => {
