@@ -47,6 +47,21 @@ export const CoCardFormModal = ({
   saving,
 }: CoCardFormModalProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('dados');
+  const [iconPage, setIconPage] = useState(0);
+
+  const icons = [
+    { value: 'armchair', label: 'Poltrona', Icon: Armchair },
+    { value: 'star', label: 'Estrela', Icon: Star },
+    { value: 'rocket', label: 'Foguete', Icon: Rocket },
+    { value: 'circle', label: 'Círculo', Icon: Circle },
+    { value: 'paw', label: 'Pegada', Icon: PawPrint },
+    { value: 'burger', label: 'Lanche', Icon: Beef },
+    { value: 'gear', label: 'Serviço', Icon: Settings },
+    { value: 'square', label: 'Quadrado', Icon: Square },
+  ];
+  const iconsPerPage = 4;
+  const totalPages = Math.ceil(icons.length / iconsPerPage);
+  const currentIcons = icons.slice(iconPage * iconsPerPage, (iconPage + 1) * iconsPerPage);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -210,68 +225,49 @@ export const CoCardFormModal = ({
               {/* Icon Selector with Navigation */}
               <div className="space-y-2">
                 <Label className="text-xs text-gray-400">Ícone dos Selos</Label>
-                {(() => {
-                  const icons = [
-                    { value: 'armchair', label: 'Poltrona', Icon: Armchair },
-                    { value: 'star', label: 'Estrela', Icon: Star },
-                    { value: 'rocket', label: 'Foguete', Icon: Rocket },
-                    { value: 'circle', label: 'Círculo', Icon: Circle },
-                    { value: 'paw', label: 'Pegada', Icon: PawPrint },
-                    { value: 'burger', label: 'Lanche', Icon: Beef },
-                    { value: 'gear', label: 'Serviço', Icon: Settings },
-                    { value: 'square', label: 'Quadrado', Icon: Square },
-                  ];
-                  const [iconPage, setIconPage] = useState(0);
-                  const iconsPerPage = 4;
-                  const totalPages = Math.ceil(icons.length / iconsPerPage);
-                  const currentIcons = icons.slice(iconPage * iconsPerPage, (iconPage + 1) * iconsPerPage);
-
-                  return (
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIconPage(prev => Math.max(0, prev - 1))}
+                    disabled={iconPage === 0}
+                    className={`p-2 rounded-lg transition-all ${
+                      iconPage === 0 
+                        ? 'text-gray-600 cursor-not-allowed' 
+                        : 'text-gray-400 hover:text-white hover:bg-[#252525]'
+                    }`}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="grid grid-cols-4 gap-2 flex-1">
+                    {currentIcons.map(({ value, label, Icon }) => (
                       <button
+                        key={value}
                         type="button"
-                        onClick={() => setIconPage(prev => Math.max(0, prev - 1))}
-                        disabled={iconPage === 0}
-                        className={`p-2 rounded-lg transition-all ${
-                          iconPage === 0 
-                            ? 'text-gray-600 cursor-not-allowed' 
-                            : 'text-gray-400 hover:text-white hover:bg-[#252525]'
+                        onClick={() => setCoCardForm({...coCardForm, icon: value})}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
+                          coCardForm.icon === value 
+                            ? 'bg-orange-500 text-white' 
+                            : 'bg-[#252525] text-gray-400 hover:bg-[#2a2a2a]'
                         }`}
                       >
-                        <ChevronLeft className="w-5 h-5" />
+                        <Icon className="w-5 h-5" />
+                        <span className="text-[10px]">{label}</span>
                       </button>
-                      <div className="grid grid-cols-4 gap-2 flex-1">
-                        {currentIcons.map(({ value, label, Icon }) => (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => setCoCardForm({...coCardForm, icon: value})}
-                            className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
-                              coCardForm.icon === value 
-                                ? 'bg-orange-500 text-white' 
-                                : 'bg-[#252525] text-gray-400 hover:bg-[#2a2a2a]'
-                            }`}
-                          >
-                            <Icon className="w-5 h-5" />
-                            <span className="text-[10px]">{label}</span>
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIconPage(prev => Math.min(totalPages - 1, prev + 1))}
-                        disabled={iconPage === totalPages - 1}
-                        className={`p-2 rounded-lg transition-all ${
-                          iconPage === totalPages - 1 
-                            ? 'text-gray-600 cursor-not-allowed' 
-                            : 'text-gray-400 hover:text-white hover:bg-[#252525]'
-                        }`}
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </div>
-                  );
-                })()}
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIconPage(prev => Math.min(totalPages - 1, prev + 1))}
+                    disabled={iconPage === totalPages - 1}
+                    className={`p-2 rounded-lg transition-all ${
+                      iconPage === totalPages - 1 
+                        ? 'text-gray-600 cursor-not-allowed' 
+                        : 'text-gray-400 hover:text-white hover:bg-[#252525]'
+                    }`}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Preview */}
