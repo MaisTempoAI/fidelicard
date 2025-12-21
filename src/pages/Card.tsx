@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car, Rocket, PawPrint, Beef, Settings, Square } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car, Rocket, PawPrint, Beef, Settings, Square, ToyBrick, Wrench, Triangle, Glasses, Footprints, Pizza, Coffee, WashingMachine, Monitor, ShieldCheck, Bell } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
 
@@ -195,6 +195,33 @@ const CardPage = () => {
         return <Square className={iconClass} style={{ color: fontColor }} />;
       case 'armchair':
         return <Armchair className={iconClass} style={{ color: fontColor }} />;
+
+      // CompanyEditModal options
+      case 'toy':
+        return <ToyBrick className={iconClass} style={{ color: fontColor }} />;
+      case 'hotdog':
+        return <UtensilsCrossed className={iconClass} style={{ color: fontColor }} />;
+      case 'wrench':
+        return <Wrench className={iconClass} style={{ color: fontColor }} />;
+      case 'pyramid':
+        return <Triangle className={iconClass} style={{ color: fontColor }} />;
+      case 'glasses':
+        return <Glasses className={iconClass} style={{ color: fontColor }} />;
+      case 'shoe':
+        return <Footprints className={iconClass} style={{ color: fontColor }} />;
+      case 'pizza':
+        return <Pizza className={iconClass} style={{ color: fontColor }} />;
+      case 'coffee':
+        return <Coffee className={iconClass} style={{ color: fontColor }} />;
+      case 'laundry':
+        return <WashingMachine className={iconClass} style={{ color: fontColor }} />;
+      case 'digital':
+        return <Monitor className={iconClass} style={{ color: fontColor }} />;
+      case 'protection':
+        return <ShieldCheck className={iconClass} style={{ color: fontColor }} />;
+      case 'alarm':
+        return <Bell className={iconClass} style={{ color: fontColor }} />;
+
       default:
         return <Scissors className={iconClass} style={{ color: fontColor }} />;
     }
