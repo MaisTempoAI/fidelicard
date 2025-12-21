@@ -406,17 +406,17 @@ const BecomePartner = () => {
                     }
                     setIsSearchingCep(true);
                     try {
-                      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+                      const response = await fetch(`https://brasilapi.com.br/api/cep/v1/${cleanCep}`);
                       const data = await response.json();
-                      if (data.erro) {
+                      if (data.errors || !data.city) {
                         toast.error("CEP não encontrado");
                       } else {
                         setFormData(prev => ({
                           ...prev,
-                          street: data.logradouro || "",
-                          neighborhood: data.bairro || "",
-                          city: data.localidade || "",
-                          state: data.uf || "",
+                          street: data.street || "",
+                          neighborhood: data.neighborhood || "",
+                          city: data.city || "",
+                          state: data.state || "",
                         }));
                         toast.success("Endereço encontrado!");
                       }
