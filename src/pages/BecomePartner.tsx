@@ -3,9 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, Sparkles, CheckCircle, Mail, Phone, Loader2, Lock, User, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, CheckCircle, Mail, Phone, Loader2, Lock, User, Eye, EyeOff, Search, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formatPhoneNumber = (value: string): string => {
   const numbers = value.replace(/\D/g, "");
@@ -19,6 +26,18 @@ const formatPhoneNumber = (value: string): string => {
   }
 };
 
+const BUSINESS_TYPES = [
+  { value: "servicos", label: "Serviços", description: "salões, barbearias, consultorias, manutenção" },
+  { value: "alimentacao", label: "Alimentação", description: "restaurantes, lanchonetes, delivery, padarias" },
+  { value: "varejo", label: "Varejo", description: "lojas de roupas, calçados, acessórios" },
+  { value: "saude", label: "Saúde e Estética", description: "clínicas, estética, bem-estar" },
+  { value: "pet", label: "Pet", description: "pet shops, veterinárias" },
+  { value: "automotivo", label: "Automotivo", description: "oficinas, lava-jatos, acessórios" },
+  { value: "construcao", label: "Construção", description: "materiais de construção, reformas" },
+  { value: "educacao", label: "Educação", description: "cursos, escolas, mentorias" },
+  { value: "outros", label: "Outros", description: "especifique abaixo" },
+];
+
 const BecomePartner = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -27,12 +46,20 @@ const BecomePartner = () => {
   const [contactValue, setContactValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [otherBusinessType, setOtherBusinessType] = useState("");
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [cep, setCep] = useState("");
   
   const [formData, setFormData] = useState({
     ownerName: "",
     companyName: "",
     businessType: "",
-    address: "",
+    street: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    number: "",
+    complement: "",
     username: "",
     password: "",
     confirmPassword: "",
@@ -73,11 +100,19 @@ const BecomePartner = () => {
 
   const validateStep2 = () => {
     if (!formData.businessType.trim()) {
-      toast.error("Informe o tipo de negócio");
+      toast.error("Selecione o tipo de negócio");
       return false;
     }
-    if (!formData.address.trim()) {
-      toast.error("Informe o endereço");
+    if (formData.businessType === "outros" && !otherBusinessType.trim()) {
+      toast.error("Descreva seu tipo de negócio");
+      return false;
+    }
+    if (!formData.street.trim() || !formData.city.trim()) {
+      toast.error("Preencha o endereço (busque pelo CEP)");
+      return false;
+    }
+    if (!formData.number.trim()) {
+      toast.error("Informe o número do endereço");
       return false;
     }
     return true;
@@ -128,15 +163,21 @@ const BecomePartner = () => {
     setIsSubmitting(true);
 
     try {
+      // Build full address
+      const fullAddress = `${formData.street}, ${formData.number}${formData.complement ? ` - ${formData.complement}` : ''} - ${formData.neighborhood} - ${formData.city}/${formData.state}`;
+      const businessTypeLabel = formData.businessType === "outros" 
+        ? otherBusinessType.trim() 
+        : BUSINESS_TYPES.find(b => b.value === formData.businessType)?.label || formData.businessType;
+
       const { error } = await supabase
         .from("CRF-Companies")
         .insert({
           name: formData.companyName.trim(),
           email: contactType === "email" ? contactValue.trim() : null,
           phone: contactType === "telefone" ? contactValue.trim() : null,
-          slug: formData.businessType.trim(),
+          slug: businessTypeLabel,
           type: "DEFAULT",
-          address: formData.address.trim(),
+          address: fullAddress,
           user: formData.username.trim(),
           password: formData.password,
           active: true,
@@ -301,29 +342,155 @@ const BecomePartner = () => {
         {/* Step 2 - Business Details */}
         {step === 2 && (
           <div className="bg-[#252540] border border-amber-500/20 rounded-2xl p-6 space-y-5">
+            {/* Business Type Selector */}
             <div className="space-y-2">
-              <Label htmlFor="businessType" className="text-white/80 text-sm">Tipo de Negócio *</Label>
-              <Input
-                id="businessType"
-                name="businessType"
+              <Label className="text-white/80 text-sm">Tipo de Negócio *</Label>
+              <Select
                 value={formData.businessType}
-                onChange={handleChange}
-                className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12"
-                placeholder="Ex: Barbearia, Restaurante, Cafeteria..."
-              />
+                onValueChange={(value) => setFormData({ ...formData, businessType: value })}
+              >
+                <SelectTrigger className="bg-[#1a1a2e] border-amber-500/20 text-white h-12 focus:ring-amber-500/50">
+                  <SelectValue placeholder="Selecione o tipo de negócio" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#252540] border-amber-500/20 z-50">
+                  {BUSINESS_TYPES.map((type) => (
+                    <SelectItem 
+                      key={type.value} 
+                      value={type.value}
+                      className="text-white hover:bg-amber-500/20 focus:bg-amber-500/20 cursor-pointer"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{type.label}</span>
+                        <span className="text-xs text-white/50">{type.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* Other Business Type Input */}
+            {formData.businessType === "outros" && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Label className="text-white/80 text-sm">Descreva seu negócio *</Label>
+                <Input
+                  value={otherBusinessType}
+                  onChange={(e) => setOtherBusinessType(e.target.value)}
+                  className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12"
+                  placeholder="Ex: Loja de instrumentos musicais"
+                />
+              </div>
+            )}
+
+            {/* CEP Search */}
             <div className="space-y-2">
-              <Label htmlFor="address" className="text-white/80 text-sm">Endereço *</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12"
-                placeholder="Rua, número, bairro, cidade"
-              />
+              <Label className="text-white/80 text-sm">CEP *</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={cep}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 8);
+                    setCep(value.length > 5 ? `${value.slice(0, 5)}-${value.slice(5)}` : value);
+                  }}
+                  className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12 flex-1"
+                  placeholder="00000-000"
+                  maxLength={9}
+                />
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    const cleanCep = cep.replace(/\D/g, "");
+                    if (cleanCep.length !== 8) {
+                      toast.error("CEP deve ter 8 dígitos");
+                      return;
+                    }
+                    setIsSearchingCep(true);
+                    try {
+                      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+                      const data = await response.json();
+                      if (data.erro) {
+                        toast.error("CEP não encontrado");
+                      } else {
+                        setFormData(prev => ({
+                          ...prev,
+                          street: data.logradouro || "",
+                          neighborhood: data.bairro || "",
+                          city: data.localidade || "",
+                          state: data.uf || "",
+                        }));
+                        toast.success("Endereço encontrado!");
+                      }
+                    } catch {
+                      toast.error("Erro ao buscar CEP");
+                    } finally {
+                      setIsSearchingCep(false);
+                    }
+                  }}
+                  disabled={isSearchingCep || cep.replace(/\D/g, "").length !== 8}
+                  className="bg-amber-500 hover:bg-amber-600 text-black h-12 px-4"
+                >
+                  {isSearchingCep ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
+
+            {/* Address Fields (populated by CEP) */}
+            {formData.street && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="space-y-2">
+                  <Label className="text-white/80 text-sm">Rua</Label>
+                  <Input
+                    value={formData.street}
+                    readOnly
+                    className="bg-[#1a1a2e]/50 border-amber-500/10 text-white/70 h-10"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-white/80 text-sm">Número *</Label>
+                    <Input
+                      value={formData.number}
+                      onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                      className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-10"
+                      placeholder="Nº"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/80 text-sm">Complemento</Label>
+                    <Input
+                      value={formData.complement}
+                      onChange={(e) => setFormData({ ...formData, complement: e.target.value })}
+                      className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-10"
+                      placeholder="Apto, sala..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-white/80 text-sm">Bairro</Label>
+                    <Input
+                      value={formData.neighborhood}
+                      readOnly
+                      className="bg-[#1a1a2e]/50 border-amber-500/10 text-white/70 h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/80 text-sm">Cidade/UF</Label>
+                    <Input
+                      value={`${formData.city}/${formData.state}`}
+                      readOnly
+                      className="bg-[#1a1a2e]/50 border-amber-500/10 text-white/70 h-10"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3 mt-6">
               <Button
