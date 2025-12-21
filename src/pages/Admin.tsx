@@ -14,11 +14,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { 
-  Plus, QrCode, Search, Users, LogOut, Pencil, X, Check, Loader2, 
-  Building, Gift, Trash2, CreditCard, Armchair, Star, Circle, 
-  Settings, Download, FileText, ChevronRight, Phone, Calendar, Eye,
-  ArrowDownAZ, ArrowUpZA, CalendarDays
+import {
+  Plus, QrCode, Search, Users, LogOut, Pencil, X, Check, Loader2,
+  Building, Gift, Trash2, CreditCard, Armchair, Star, Circle, Rocket, PawPrint, Beef, Settings, Square,
+  Download, FileText, ChevronRight, Phone, Calendar, Eye,
+  ArrowDownAZ, ArrowUpZA, CalendarDays,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -1296,7 +1296,18 @@ END:VCARD`;
             ) : (
               <div className="space-y-4">
                 {coCards.map((coCard) => {
-                  const IconComponent = coCard.icon === 'star' ? Star : coCard.icon === 'circle' ? Circle : coCard.icon === 'x' ? X : Armchair;
+                  const iconMap: Record<string, typeof Star> = {
+                    star: Star,
+                    circle: Circle,
+                    x: X,
+                    rocket: Rocket,
+                    paw: PawPrint,
+                    burger: Beef,
+                    gear: Settings,
+                    square: Square,
+                    armchair: Armchair,
+                  };
+                  const IconComponent = iconMap[coCard.icon || 'armchair'] || Armchair;
                   return (
                     <div 
                       key={coCard.id} 
