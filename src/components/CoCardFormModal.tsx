@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Armchair, Star, X, Circle, Loader2, CreditCard, Palette } from "lucide-react";
+import { Armchair, Star, Rocket, Circle, Loader2, CreditCard, Palette, PawPrint, Beef, Settings, Square, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
 
 interface CoCardForm {
   id?: number;
@@ -207,31 +207,71 @@ export const CoCardFormModal = ({
                 </div>
               </div>
 
-              {/* Icon Selector */}
+              {/* Icon Selector with Navigation */}
               <div className="space-y-2">
                 <Label className="text-xs text-gray-400">Ícone dos Selos</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
+                {(() => {
+                  const icons = [
                     { value: 'armchair', label: 'Poltrona', Icon: Armchair },
                     { value: 'star', label: 'Estrela', Icon: Star },
-                    { value: 'x', label: 'X', Icon: X },
+                    { value: 'rocket', label: 'Foguete', Icon: Rocket },
                     { value: 'circle', label: 'Círculo', Icon: Circle },
-                  ].map(({ value, label, Icon }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setCoCardForm({...coCardForm, icon: value})}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
-                        coCardForm.icon === value 
-                          ? 'bg-orange-500 text-white' 
-                          : 'bg-[#252525] text-gray-400 hover:bg-[#2a2a2a]'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-[10px]">{label}</span>
-                    </button>
-                  ))}
-                </div>
+                    { value: 'paw', label: 'Pegada', Icon: PawPrint },
+                    { value: 'burger', label: 'Lanche', Icon: Beef },
+                    { value: 'gear', label: 'Serviço', Icon: Settings },
+                    { value: 'square', label: 'Quadrado', Icon: Square },
+                  ];
+                  const [iconPage, setIconPage] = useState(0);
+                  const iconsPerPage = 4;
+                  const totalPages = Math.ceil(icons.length / iconsPerPage);
+                  const currentIcons = icons.slice(iconPage * iconsPerPage, (iconPage + 1) * iconsPerPage);
+
+                  return (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIconPage(prev => Math.max(0, prev - 1))}
+                        disabled={iconPage === 0}
+                        className={`p-2 rounded-lg transition-all ${
+                          iconPage === 0 
+                            ? 'text-gray-600 cursor-not-allowed' 
+                            : 'text-gray-400 hover:text-white hover:bg-[#252525]'
+                        }`}
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <div className="grid grid-cols-4 gap-2 flex-1">
+                        {currentIcons.map(({ value, label, Icon }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setCoCardForm({...coCardForm, icon: value})}
+                            className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
+                              coCardForm.icon === value 
+                                ? 'bg-orange-500 text-white' 
+                                : 'bg-[#252525] text-gray-400 hover:bg-[#2a2a2a]'
+                            }`}
+                          >
+                            <Icon className="w-5 h-5" />
+                            <span className="text-[10px]">{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIconPage(prev => Math.min(totalPages - 1, prev + 1))}
+                        disabled={iconPage === totalPages - 1}
+                        className={`p-2 rounded-lg transition-all ${
+                          iconPage === totalPages - 1 
+                            ? 'text-gray-600 cursor-not-allowed' 
+                            : 'text-gray-400 hover:text-white hover:bg-[#252525]'
+                        }`}
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Preview */}
@@ -252,10 +292,17 @@ export const CoCardFormModal = ({
                     style={{ backgroundColor: coCardForm.seccolour || '#dcd0c0' }}
                   >
                     {[...Array(5)].map((_, i) => {
-                      const IconComponent = coCardForm.icon === 'star' ? Star 
-                        : coCardForm.icon === 'x' ? X 
-                        : coCardForm.icon === 'circle' ? Circle 
-                        : Armchair;
+                      const iconMap: Record<string, typeof Star> = {
+                        star: Star,
+                        rocket: Rocket,
+                        circle: Circle,
+                        paw: PawPrint,
+                        burger: Beef,
+                        gear: Settings,
+                        square: Square,
+                        armchair: Armchair,
+                      };
+                      const IconComponent = iconMap[coCardForm.icon] || Armchair;
                       return (
                         <IconComponent 
                           key={i} 
