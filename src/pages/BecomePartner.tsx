@@ -138,14 +138,37 @@ const BecomePartner = () => {
     return true;
   };
 
+  // Remove special characters, dashes, and spaces from username
+  const sanitizeUsername = (value: string): string => {
+    return value.replace(/[^a-zA-Z0-9]/g, "");
+  };
+
+  // Get flat phone number (numbers only)
+  const getFlatPhone = (phone: string): string => {
+    return phone.replace(/\D/g, "");
+  };
+
+  // Generate email from company name
+  const generateEmail = (companyName: string): string => {
+    const sanitized = companyName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .replace(/[^a-z0-9]/g, ""); // Remove special chars
+    return `${sanitized}@123.com.br`;
+  };
+
   const handleNext = () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
     } else if (step === 2 && validateStep2()) {
-      // Pre-fill username with contact value
+      // Pre-fill username with flat phone number if phone was used, otherwise use email
+      const suggestedUsername = contactType === "telefone" 
+        ? getFlatPhone(contactValue) 
+        : contactValue.trim();
       setFormData(prev => ({
         ...prev,
-        username: prev.username || contactValue.trim()
+        username: prev.username || sanitizeUsername(suggestedUsername)
       }));
       setStep(3);
     }
@@ -169,12 +192,22 @@ const BecomePartner = () => {
         ? otherBusinessType.trim() 
         : BUSINESS_TYPES.find(b => b.value === formData.businessType)?.label || formData.businessType;
 
+      // Determine email: if not provided, generate from company name
+      const emailToSave = contactType === "email" 
+        ? contactValue.trim() 
+        : generateEmail(formData.companyName);
+
+      // Save phone without special characters
+      const phoneToSave = contactType === "telefone" 
+        ? getFlatPhone(contactValue) 
+        : null;
+
       const { error } = await supabase
         .from("CRF-Companies")
         .insert({
           name: formData.companyName.trim(),
-          email: contactType === "email" ? contactValue.trim() : null,
-          phone: contactType === "telefone" ? contactValue.trim() : null,
+          email: emailToSave,
+          phone: phoneToSave,
           slug: businessTypeLabel,
           type: "DEFAULT",
           address: fullAddress,
@@ -527,9 +560,12 @@ const BecomePartner = () => {
                   id="username"
                   name="username"
                   value={formData.username}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const sanitized = sanitizeUsername(e.target.value);
+                    setFormData({ ...formData, username: sanitized });
+                  }}
                   className="bg-[#1a1a2e] border-amber-500/20 text-white placeholder:text-white/30 focus:border-amber-500/50 h-12 pl-10"
-                  placeholder="Email ou telefone"
+                  placeholder="Apenas letras e números"
                 />
               </div>
             </div>
