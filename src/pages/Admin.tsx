@@ -1172,7 +1172,19 @@ END:VCARD`;
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <p className="font-medium text-white">{client.nome || "Sem nome"}</p>
-                            <p className="text-sm text-gray-400">{client.phone || "-"}</p>
+                            {client.phone ? (
+                              <a 
+                                href={`https://api.whatsapp.com/send/?phone=55${client.phone.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá. ${client.nome || 'Cliente'}`)}&type=phone_number&app_absent=0`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-green-500 font-bold flex items-center gap-1 hover:text-green-400"
+                              >
+                                <Phone className="w-3 h-3" />
+                                {client.phone}
+                              </a>
+                            ) : (
+                              <p className="text-sm text-gray-400">-</p>
+                            )}
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500 mb-1">Selos</p>
@@ -1489,7 +1501,7 @@ END:VCARD`;
                           <p className="text-white font-medium truncate min-w-0">{stamp.clientName}</p>
                           {stamp.clientPhone && (
                             <a 
-                              href={`https://api.whatsapp.com/send/?phone=55${stamp.clientPhone.replace(/\D/g, '')}&text=Mensagem&type=phone_number&app_absent=0`}
+                              href={`https://api.whatsapp.com/send/?phone=55${stamp.clientPhone.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá. ${stamp.clientName}`)}&type=phone_number&app_absent=0`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-sm text-green-500 font-bold flex items-center gap-1 flex-shrink-0 hover:text-green-400"
@@ -1569,7 +1581,7 @@ END:VCARD`;
                           <p className="text-white font-bold text-lg">{card.clientName}</p>
                           {card.clientPhone && (
                             <a 
-                              href={`https://api.whatsapp.com/send/?phone=55${card.clientPhone.replace(/\D/g, '')}&text=Mensagem&type=phone_number&app_absent=0`}
+                              href={`https://api.whatsapp.com/send/?phone=55${card.clientPhone.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá. ${card.clientName}`)}&type=phone_number&app_absent=0`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-green-500 font-bold flex items-center gap-1 hover:text-green-400"
