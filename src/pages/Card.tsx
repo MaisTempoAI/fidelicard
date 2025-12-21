@@ -173,10 +173,30 @@ const CardPage = () => {
   const getCompanyIcon = () => {
     const iconClass = "w-[clamp(18px,4.5vw,24px)] h-[clamp(18px,4.5vw,24px)]";
     switch (companyIcon) {
-      case 'utensils': return <UtensilsCrossed className={iconClass} style={{ color: fontColor }} />;
-      case 'car': return <Car className={iconClass} style={{ color: fontColor }} />;
-      case 'gift': return <Gift className={iconClass} style={{ color: fontColor }} />;
-      default: return <Scissors className={iconClass} style={{ color: fontColor }} />;
+      case 'utensils':
+        return <UtensilsCrossed className={iconClass} style={{ color: fontColor }} />;
+      case 'car':
+        return <Car className={iconClass} style={{ color: fontColor }} />;
+      case 'gift':
+        return <Gift className={iconClass} style={{ color: fontColor }} />;
+      case 'star':
+        return <Star className={iconClass} style={{ color: fontColor }} />;
+      case 'circle':
+        return <Circle className={iconClass} style={{ color: fontColor }} />;
+      case 'rocket':
+        return <Rocket className={iconClass} style={{ color: fontColor }} />;
+      case 'paw':
+        return <PawPrint className={iconClass} style={{ color: fontColor }} />;
+      case 'burger':
+        return <Beef className={iconClass} style={{ color: fontColor }} />;
+      case 'gear':
+        return <Settings className={iconClass} style={{ color: fontColor }} />;
+      case 'square':
+        return <Square className={iconClass} style={{ color: fontColor }} />;
+      case 'armchair':
+        return <Armchair className={iconClass} style={{ color: fontColor }} />;
+      default:
+        return <Scissors className={iconClass} style={{ color: fontColor }} />;
     }
   };
 
