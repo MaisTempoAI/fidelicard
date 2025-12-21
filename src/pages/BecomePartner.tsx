@@ -229,7 +229,7 @@ const BecomePartner = () => {
 
       // Redirect to login with credentials pre-filled
       setTimeout(() => {
-        navigate(`/admin-login?user=${encodeURIComponent(formData.username.trim())}&pass=${encodeURIComponent(formData.password)}`);
+        navigate(`/admin/login?user=${encodeURIComponent(formData.username.trim())}&pass=${encodeURIComponent(formData.password)}`);
       }, 1500);
     } catch (error) {
       console.error("Error:", error);
