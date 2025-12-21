@@ -75,21 +75,22 @@ const AddStamp = () => {
     fetchCardData();
   }, [code]);
 
-  const handleAddStamp = async () => {
+  const handleAddStamp = async (stampsToAdd: number = 1) => {
     if (!cardData || cardData.completed) return;
 
     setIsAdding(true);
 
-    const { success, newStamps, isCompleted, error } = await addStampToCard(
+    const { success, newStamps, isCompleted, stampsAdded, error } = await addStampToCard(
       cardData.id,
       cardData.custamp,
-      cardData.reqstamp
+      cardData.reqstamp,
+      stampsToAdd
     );
 
     if (success) {
       setCardData(prev => prev ? {
         ...prev,
-        custamp: newStamps || prev.custamp + 1,
+        custamp: newStamps || prev.custamp + stampsToAdd,
         completed: isCompleted || false,
       } : null);
 
@@ -99,7 +100,7 @@ const AddStamp = () => {
           description: `${clientData?.nome || "Cliente"} ganhou a recompensa!`
         });
       } else {
-        toast.success("Selo adicionado!", {
+        toast.success(`${stampsAdded} selo${stampsAdded > 1 ? 's' : ''} adicionado${stampsAdded > 1 ? 's' : ''}!`, {
           description: `${newStamps}/${cardData.reqstamp} selos`
         });
       }
@@ -209,33 +210,47 @@ const AddStamp = () => {
             ))}
           </div>
 
-          {/* Add Stamp Button */}
-          <Button
-            onClick={handleAddStamp}
-            disabled={isAdding || cardData.completed}
-            className={`w-full h-14 text-lg ${
-              cardData.completed
-                ? "bg-green-500 hover:bg-green-600"
-                : "gradient-warm hover:opacity-90"
-            }`}
-          >
-            {cardData.completed ? (
-              <>
-                <PartyPopper className="w-5 h-5 mr-2" />
-                Cartão Completo!
-              </>
-            ) : isAdding ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Adicionando...
-              </>
-            ) : (
-              <>
-                <Check className="w-5 h-5 mr-2" />
-                Adicionar Selo
-              </>
-            )}
-          </Button>
+          {/* Add Stamp Buttons */}
+          {cardData.completed ? (
+            <Button
+              disabled
+              className="w-full h-14 text-lg bg-green-500 hover:bg-green-600"
+            >
+              <PartyPopper className="w-5 h-5 mr-2" />
+              Cartão Completo!
+            </Button>
+          ) : (
+            <div className="flex gap-3">
+              <Button
+                onClick={() => handleAddStamp(1)}
+                disabled={isAdding}
+                className="flex-1 h-14 text-lg gradient-warm hover:opacity-90"
+              >
+                {isAdding ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="w-5 h-5 mr-2" />
+                    +1 SELO
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => handleAddStamp(2)}
+                disabled={isAdding || cardData.custamp + 2 > cardData.reqstamp}
+                className="flex-1 h-14 text-lg bg-primary/80 hover:bg-primary"
+              >
+                {isAdding ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="w-5 h-5 mr-2" />
+                    +2 SELOS
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
 
           {cardData.completed && (
             <Button

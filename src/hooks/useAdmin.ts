@@ -161,8 +161,8 @@ const formatEventDate = (date: Date): string => {
   return `${day}/${month}/${year} | ${hours}:${minutes}`;
 };
 
-// Add stamp to a card
-export const addStampToCard = async (cardId: number, currentStamps: number, requiredStamps: number) => {
+// Add stamp to a card (supports adding multiple stamps)
+export const addStampToCard = async (cardId: number, currentStamps: number, requiredStamps: number, stampsToAdd: number = 1) => {
   // First, get current events from the card
   const { data: cardData } = await supabase
     .from("CRF-Cards")
@@ -170,16 +170,23 @@ export const addStampToCard = async (cardId: number, currentStamps: number, requ
     .eq("id", cardId)
     .single();
 
-  const newStamps = currentStamps + 1;
+  // Cap at required stamps (don't exceed)
+  const newStamps = Math.min(currentStamps + stampsToAdd, requiredStamps);
   const isCompleted = newStamps >= requiredStamps;
   
-  // Format new event entry
+  // Format new event entries for each stamp added
   const eventDate = formatEventDate(new Date());
-  const newEvent = `${newStamps}selo='${eventDate}'`;
+  const actualStampsAdded = newStamps - currentStamps;
+  const newEvents: string[] = [];
+  for (let i = 0; i < actualStampsAdded; i++) {
+    newEvents.push(`${currentStamps + i + 1}selo='${eventDate}'`);
+  }
   
   // Append to existing events or start new
   const currentEvents = cardData?.events || '';
-  const updatedEvents = currentEvents ? `${currentEvents};${newEvent}` : newEvent;
+  const updatedEvents = currentEvents 
+    ? `${currentEvents};${newEvents.join(';')}` 
+    : newEvents.join(';');
 
   const { error } = await supabase
     .from("CRF-Cards")
@@ -195,7 +202,7 @@ export const addStampToCard = async (cardId: number, currentStamps: number, requ
     return { success: false, error: error.message };
   }
 
-  return { success: true, newStamps, isCompleted, error: null };
+  return { success: true, newStamps, isCompleted, stampsAdded: actualStampsAdded, error: null };
 };
 
 // Update client and card data
