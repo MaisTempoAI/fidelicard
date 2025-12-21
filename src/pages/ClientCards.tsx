@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, ArrowLeft, Plus, CheckCircle, Gift, Megaphone } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, CheckCircle, Gift, Megaphone, ArrowUpDown, Calendar, SortAsc } from "lucide-react";
 import { toast } from "sonner";
 import { 
   getClientByPhone, 
@@ -59,6 +59,11 @@ const ClientCards = () => {
   const [activePromotions, setActivePromotions] = useState<CoCard[]>([]);
   const [loadingPromotions, setLoadingPromotions] = useState(false);
   const [creatingFromPromotion, setCreatingFromPromotion] = useState<number | null>(null);
+  
+  // Filters for completed/rescued cards
+  type SortType = 'date-desc' | 'date-asc' | 'alpha-asc' | 'alpha-desc';
+  const [completedSort, setCompletedSort] = useState<SortType>('date-desc');
+  const [rescuedSort, setRescuedSort] = useState<SortType>('date-desc');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -279,9 +284,64 @@ const ClientCards = () => {
   };
 
   const activeCard = cards.find(c => !c.completed);
-  const completedCards = cards.filter(c => c.completed && !c.rescued);
-  const rescuedCards = cards.filter(c => c.rescued);
+  const completedCardsRaw = cards.filter(c => c.completed && !c.rescued);
+  const rescuedCardsRaw = cards.filter(c => c.rescued);
   const canCreateNew = !activeCard || activeCard.completed;
+
+  // Sort function
+  const sortCards = (cardsToSort: CardItem[], sortType: SortType) => {
+    return [...cardsToSort].sort((a, b) => {
+      switch (sortType) {
+        case 'date-desc':
+          return new Date(b.completedat || b.created_at).getTime() - new Date(a.completedat || a.created_at).getTime();
+        case 'date-asc':
+          return new Date(a.completedat || a.created_at).getTime() - new Date(b.completedat || b.created_at).getTime();
+        case 'alpha-asc':
+          return (a.cardcode || '').localeCompare(b.cardcode || '');
+        case 'alpha-desc':
+          return (b.cardcode || '').localeCompare(a.cardcode || '');
+        default:
+          return 0;
+      }
+    });
+  };
+
+  const completedCards = sortCards(completedCardsRaw, completedSort);
+  const rescuedCards = sortCards(rescuedCardsRaw, rescuedSort);
+
+  const cycleSortType = (current: SortType): SortType => {
+    const order: SortType[] = ['date-desc', 'date-asc', 'alpha-asc', 'alpha-desc'];
+    const currentIndex = order.indexOf(current);
+    return order[(currentIndex + 1) % order.length];
+  };
+
+  const getSortIcon = (sortType: SortType) => {
+    switch (sortType) {
+      case 'date-desc':
+      case 'date-asc':
+        return Calendar;
+      case 'alpha-asc':
+      case 'alpha-desc':
+        return SortAsc;
+      default:
+        return ArrowUpDown;
+    }
+  };
+
+  const getSortLabel = (sortType: SortType) => {
+    switch (sortType) {
+      case 'date-desc':
+        return 'Mais recente';
+      case 'date-asc':
+        return 'Mais antigo';
+      case 'alpha-asc':
+        return 'A-Z';
+      case 'alpha-desc':
+        return 'Z-A';
+      default:
+        return '';
+    }
+  };
 
   // Loading state
   if (isLoading) {
@@ -685,13 +745,39 @@ const ClientCards = () => {
       {/* Completed Cards */}
       {completedCards.length > 0 && (
         <div className="w-full max-w-md mb-4">
-          <h2 
-            className="text-[clamp(12px,3vw,14px)] font-medium mb-3 flex items-center gap-2 tracking-wide uppercase"
-            style={{ color: colors.fontColor }}
-          >
-            <CheckCircle className="w-4 h-4" style={{ color: '#22c55e' }} />
-            Cartões Completos ({completedCards.length})
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-5 h-5" style={{ color: '#22c55e' }} />
+              <span 
+                className="text-[clamp(28px,7vw,36px)] font-bold"
+                style={{ color: colors.fontColor }}
+              >
+                {completedCards.length}
+              </span>
+              <span 
+                className="text-[clamp(12px,3vw,14px)] font-medium tracking-wide uppercase"
+                style={{ color: colors.fontColor, opacity: 0.7 }}
+              >
+                Aguardando resgate
+              </span>
+            </div>
+            <button
+              onClick={() => setCompletedSort(cycleSortType(completedSort))}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors"
+              style={{ backgroundColor: `${colors.fontColor}10` }}
+            >
+              {(() => {
+                const SortIconComponent = getSortIcon(completedSort);
+                return <SortIconComponent className="w-3 h-3" style={{ color: colors.fontColor, opacity: 0.6 }} />;
+              })()}
+              <span 
+                className="text-[clamp(9px,2.2vw,10px)] font-medium"
+                style={{ color: colors.fontColor, opacity: 0.6 }}
+              >
+                {getSortLabel(completedSort)}
+              </span>
+            </button>
+          </div>
           <div className="space-y-3">
             {completedCards.map((card) => {
               // Invert colors for completed cards
@@ -745,13 +831,39 @@ const ClientCards = () => {
       {/* Rescued Cards */}
       {rescuedCards.length > 0 && (
         <div className="w-full max-w-md">
-          <h2 
-            className="text-[clamp(12px,3vw,14px)] font-medium mb-3 flex items-center gap-2 tracking-wide uppercase"
-            style={{ color: colors.fontColor, opacity: 0.6 }}
-          >
-            <Gift className="w-4 h-4" />
-            Cartões Resgatados ({rescuedCards.length})
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <Gift className="w-5 h-5" style={{ color: colors.fontColor, opacity: 0.6 }} />
+              <span 
+                className="text-[clamp(28px,7vw,36px)] font-bold"
+                style={{ color: colors.fontColor, opacity: 0.6 }}
+              >
+                {rescuedCards.length}
+              </span>
+              <span 
+                className="text-[clamp(12px,3vw,14px)] font-medium tracking-wide uppercase"
+                style={{ color: colors.fontColor, opacity: 0.5 }}
+              >
+                Resgatados
+              </span>
+            </div>
+            <button
+              onClick={() => setRescuedSort(cycleSortType(rescuedSort))}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors"
+              style={{ backgroundColor: `${colors.fontColor}10` }}
+            >
+              {(() => {
+                const SortIconComponent = getSortIcon(rescuedSort);
+                return <SortIconComponent className="w-3 h-3" style={{ color: colors.fontColor, opacity: 0.6 }} />;
+              })()}
+              <span 
+                className="text-[clamp(9px,2.2vw,10px)] font-medium"
+                style={{ color: colors.fontColor, opacity: 0.6 }}
+              >
+                {getSortLabel(rescuedSort)}
+              </span>
+            </button>
+          </div>
           <div className="space-y-3">
             {rescuedCards.map((card) => (
               <button
