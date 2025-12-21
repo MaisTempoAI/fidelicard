@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings, Scissors, Star, X, Circle, Armchair, Sparkles, Clock, UtensilsCrossed, Car, Gift } from "lucide-react";
+import { Loader2, Settings as SettingsIcon, Scissors, Star, X, Circle, Armchair, Sparkles, Clock, UtensilsCrossed, Car, Gift, Rocket, PawPrint, Beef, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
@@ -103,6 +103,16 @@ const Companies = () => {
         return <X className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
       case 'circle':
         return <Circle className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'rocket':
+        return <Rocket className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'paw':
+        return <PawPrint className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'burger':
+        return <Beef className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'gear':
+        return <SettingsIcon className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'square':
+        return <Square className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
       default:
         return <Armchair className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
     }
@@ -148,7 +158,7 @@ const Companies = () => {
           className="text-white/50 hover:text-white hover:bg-amber-500/10 transition-all"
           onClick={() => navigate("/admin")}
         >
-          <Settings className="w-4 h-4 mr-2" />
+          <SettingsIcon className="w-4 h-4 mr-2" />
           Admin
         </Button>
       </div>
