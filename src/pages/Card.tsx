@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car, Rocket, PawPrint, Beef, Settings, Square } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
 
@@ -195,6 +195,16 @@ const CardPage = () => {
         return <X className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
       case 'circle':
         return <Circle className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'rocket':
+        return <Rocket className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'paw':
+        return <PawPrint className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'burger':
+        return <Beef className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'gear':
+        return <Settings className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
+      case 'square':
+        return <Square className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
       default:
         return <Armchair className={`${baseClass} ${scaleClass}`} style={colorStyle} />;
     }
