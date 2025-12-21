@@ -1429,49 +1429,57 @@ END:VCARD`;
         {/* Stamps History View */}
         {activeView === 'stamps' && (
           <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Histórico de Selos</h2>
-              <div className="flex items-center gap-2">
-                {/* Name sort button */}
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => {
-                    if (stampsNameSortOrder === null) {
-                      setStampsNameSortOrder('asc');
-                    } else if (stampsNameSortOrder === 'asc') {
-                      setStampsNameSortOrder('desc');
-                    } else {
-                      setStampsNameSortOrder(null);
-                    }
-                  }}
-                  className={`w-9 h-9 rounded-xl border-white/20 ${stampsNameSortOrder !== null ? 'bg-orange-500 border-orange-500 text-white' : 'text-white hover:bg-white/10'}`}
-                  title={stampsNameSortOrder === 'asc' ? 'A-Z' : stampsNameSortOrder === 'desc' ? 'Z-A' : 'Ordenar por nome'}
-                >
-                  {stampsNameSortOrder === 'desc' ? (
-                    <ArrowUpZA className="w-4 h-4" />
-                  ) : (
-                    <ArrowDownAZ className="w-4 h-4" />
-                  )}
-                </Button>
-                {/* Date sort button */}
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => {
+            {/* Header - Same design as Clients */}
+            <div className="flex items-center gap-2">
+              {/* Name Sort Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (stampsNameSortOrder === null) {
+                    setStampsNameSortOrder('asc');
+                  } else if (stampsNameSortOrder === 'asc') {
+                    setStampsNameSortOrder('desc');
+                  } else {
                     setStampsNameSortOrder(null);
-                    setStampsDateSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
-                  }}
-                  className={`w-9 h-9 rounded-xl border-white/20 ${stampsNameSortOrder === null ? 'bg-orange-500 border-orange-500 text-white' : 'text-white hover:bg-white/10'}`}
-                  title={stampsDateSortOrder === 'desc' ? 'Mais recente primeiro' : 'Mais antigo primeiro'}
-                >
-                  <CalendarDays className="w-4 h-4" />
-                </Button>
-                <Badge className="bg-orange-500/20 text-orange-500 border-0">
-                  {totalStamps} total
-                </Badge>
-              </div>
+                  }
+                }}
+                className={`h-12 w-12 rounded-xl ${
+                  stampsNameSortOrder !== null 
+                    ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                    : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] hover:text-white'
+                }`}
+                title={stampsNameSortOrder === 'asc' ? 'A → Z' : stampsNameSortOrder === 'desc' ? 'Z → A' : 'Ordenar por nome'}
+              >
+                {stampsNameSortOrder === 'desc' ? (
+                  <ArrowUpZA className="w-5 h-5" />
+                ) : (
+                  <ArrowDownAZ className="w-5 h-5" />
+                )}
+              </Button>
+              
+              {/* Date Sort Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setStampsNameSortOrder(null);
+                  setStampsDateSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+                }}
+                className={`h-12 w-12 rounded-xl ${
+                  stampsNameSortOrder === null 
+                    ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                    : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] hover:text-white'
+                }`}
+                title={stampsDateSortOrder === 'desc' ? 'Mais recentes' : 'Mais antigos'}
+              >
+                <CalendarDays className="w-5 h-5" />
+              </Button>
+
+              {/* Total Badge */}
+              <Badge className="bg-orange-500 text-white border-0 h-12 px-4 text-sm font-bold rounded-xl ml-auto">
+                {totalStamps} total
+              </Badge>
             </div>
 
             {loadingStamps ? (
@@ -1504,26 +1512,34 @@ END:VCARD`;
                       {stamps.map((stamp, idx) => (
                         <div 
                           key={`${stamp.cardId}-${stamp.stampNumber}-${idx}`}
-                          className="bg-[#1a1a1a] rounded-xl p-3 flex items-center gap-3"
+                          className="bg-[#1a1a1a] rounded-2xl p-4"
                         >
-                          <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                            <Star className="w-4 h-4 text-orange-500" />
-                          </div>
-                          <p className="text-white font-medium truncate min-w-0">{stamp.clientName}</p>
-                          {stamp.clientPhone && (
-                            <a 
-                              href={`https://api.whatsapp.com/send/?phone=55${stamp.clientPhone.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá ${stamp.clientName}`)}&type=phone_number&app_absent=0`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-green-500 font-bold flex items-center gap-1 flex-shrink-0 hover:text-green-400"
-                            >
-                              <Phone className="w-3 h-3" />
-                              {stamp.clientPhone}
-                            </a>
-                          )}
-                          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
-                            <span className="text-sm text-gray-400">{stamp.time}</span>
-                            <span className="text-orange-500 font-bold">({stamp.stampNumber}º)</span>
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                                <Star className="w-5 h-5 text-orange-500" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-white font-medium text-base">{stamp.clientName}</p>
+                                {stamp.clientPhone && (
+                                  <a 
+                                    href={`https://api.whatsapp.com/send/?phone=55${stamp.clientPhone.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá ${stamp.clientName}`)}&type=phone_number&app_absent=0`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-green-500 font-medium flex items-center gap-1 hover:text-green-400"
+                                  >
+                                    <Phone className="w-3 h-3" />
+                                    {stamp.clientPhone}
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="text-xs text-gray-400">{stamp.time}</span>
+                              <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">{stamp.stampNumber}º</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
