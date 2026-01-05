@@ -369,8 +369,12 @@ export type Database = {
           delayresponse: number | null
           id: number
           login: string | null
+          MODOausente: boolean | null
+          MODOausenteMSG: string | null
+          MODOausenteurl: string | null
           MSGSaudacao: string | null
           MSGSaudacaoactive: boolean | null
+          MSGSaudacaolink: string | null
           MSGSaudacaourl: string | null
           N8NFLUX: string | null
           N8NHOK: string | null
@@ -420,8 +424,12 @@ export type Database = {
           delayresponse?: number | null
           id?: number
           login?: string | null
+          MODOausente?: boolean | null
+          MODOausenteMSG?: string | null
+          MODOausenteurl?: string | null
           MSGSaudacao?: string | null
           MSGSaudacaoactive?: boolean | null
+          MSGSaudacaolink?: string | null
           MSGSaudacaourl?: string | null
           N8NFLUX?: string | null
           N8NHOK?: string | null
@@ -471,8 +479,12 @@ export type Database = {
           delayresponse?: number | null
           id?: number
           login?: string | null
+          MODOausente?: boolean | null
+          MODOausenteMSG?: string | null
+          MODOausenteurl?: string | null
           MSGSaudacao?: string | null
           MSGSaudacaoactive?: boolean | null
+          MSGSaudacaolink?: string | null
           MSGSaudacaourl?: string | null
           N8NFLUX?: string | null
           N8NHOK?: string | null
@@ -526,6 +538,7 @@ export type Database = {
           N8NFLUX: string | null
           N8NHOK: string | null
           quepasakey: string | null
+          SLOTname: string | null
           status: string | null
         }
         Insert: {
@@ -538,6 +551,7 @@ export type Database = {
           N8NFLUX?: string | null
           N8NHOK?: string | null
           quepasakey?: string | null
+          SLOTname?: string | null
           status?: string | null
         }
         Update: {
@@ -550,6 +564,7 @@ export type Database = {
           N8NFLUX?: string | null
           N8NHOK?: string | null
           quepasakey?: string | null
+          SLOTname?: string | null
           status?: string | null
         }
         Relationships: []

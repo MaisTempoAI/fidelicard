@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, ArrowLeft, Settings } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { getCompanyByIdOrSlug } from "@/hooks/useLoyalty";
 import { getFirstActiveCoCardColors, CompanyColors } from "@/hooks/useCoCards";
@@ -115,29 +115,41 @@ const CompanyPage = () => {
       className="min-h-[100dvh] flex flex-col items-center justify-center px-6 py-8 overflow-hidden"
       style={{ backgroundColor: colors.bgColor }}
     >
-      {/* Back button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="absolute top-4 left-4 z-20 hover:bg-transparent"
-        style={{ color: colors.fontColor, opacity: 0.7 }}
-        onClick={() => navigate("/")}
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Voltar
-      </Button>
+      {/* Top Buttons */}
+      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-center">
+        {/* Left side buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            className="hover:bg-white/10 h-12 px-4 text-base"
+            style={{ color: colors.fontColor, opacity: 0.8 }}
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Voltar
+          </Button>
+          <Button
+            variant="ghost"
+            className="hover:bg-white/10 h-12 px-4 text-base border"
+            style={{ color: colors.fontColor, opacity: 0.8, borderColor: `${colors.fontColor}30` }}
+            onClick={() => navigate("/seja-parceiro")}
+          >
+            <Sparkles className="w-5 h-5 mr-2" />
+            Seja um Parceiro
+          </Button>
+        </div>
 
-      {/* Admin Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="absolute top-4 right-4 z-20 hover:bg-transparent"
-        style={{ color: colors.fontColor, opacity: 0.7 }}
-        onClick={() => navigate("/admin")}
-      >
-        <Settings className="w-4 h-4 mr-2" />
-        Admin
-      </Button>
+        {/* Admin Button */}
+        <Button
+          variant="ghost"
+          className="hover:bg-white/10 h-12 px-4 text-base"
+          style={{ color: colors.fontColor, opacity: 0.8 }}
+          onClick={() => navigate("/admin")}
+        >
+          <Settings className="w-5 h-5 mr-2" />
+          Admin
+        </Button>
+      </div>
 
       {/* Logo - only show if company has an elogo */}
       {company.elogo && (
