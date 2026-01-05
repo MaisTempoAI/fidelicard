@@ -84,8 +84,10 @@ const Companies = () => {
     fetchCompaniesAndCards();
   }, []);
 
-  const handleSelectCompany = (companyId: number) => {
-    navigate(`/empresa/${companyId}`);
+  const handleSelectCompany = (companyId: number, slug: string | null) => {
+    // Use slug if available, otherwise fall back to ID
+    const identifier = slug || companyId.toString();
+    navigate(`/empresa/${identifier}`);
   };
 
   // Helper function to get the stamp icon component - always black stamps on light background
@@ -236,7 +238,7 @@ const Companies = () => {
                 <div
                   key={company.id}
                   className="cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl"
-                  onClick={() => handleSelectCompany(company.id)}
+                  onClick={() => handleSelectCompany(company.id, company.slug)}
                 >
                   {/* Card Preview - Exact replica of Card.tsx design */}
                   <div 
