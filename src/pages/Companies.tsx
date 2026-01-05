@@ -143,22 +143,20 @@ const Companies = () => {
         {/* Seja um Parceiro Button */}
         <Button
           variant="ghost"
-          size="sm"
-          className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all border border-amber-500/30 hover:border-amber-500/50"
+          className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-all border border-amber-500/30 hover:border-amber-500/50 h-12 px-5 text-base"
           onClick={() => navigate("/seja-parceiro")}
         >
-          <Sparkles className="w-4 h-4 mr-2" />
+          <Sparkles className="w-5 h-5 mr-2" />
           Seja um Parceiro
         </Button>
 
         {/* Admin Button */}
         <Button
           variant="ghost"
-          size="sm"
-          className="text-white/50 hover:text-white hover:bg-amber-500/10 transition-all"
+          className="text-white/50 hover:text-white hover:bg-amber-500/10 transition-all h-12 px-5 text-base"
           onClick={() => navigate("/admin")}
         >
-          <SettingsIcon className="w-4 h-4 mr-2" />
+          <SettingsIcon className="w-5 h-5 mr-2" />
           Admin
         </Button>
       </div>
