@@ -114,6 +114,16 @@ interface AllEvent {
   dateObj: Date;
 }
 
+interface GroupedClientEvents {
+  clientName: string;
+  clientPhone: string;
+  cardcode: string;
+  cardId: number;
+  events: AllEvent[];
+  totalSelos: number;
+  totalCheckins: number;
+}
+
 interface StampEvent {
   cardId: number;
   clientName: string;
@@ -199,6 +209,8 @@ const Admin = () => {
   const [allEvents, setAllEvents] = useState<AllEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [exportingEvents, setExportingEvents] = useState(false);
+  const [showClientEventsModal, setShowClientEventsModal] = useState(false);
+  const [selectedClientEvents, setSelectedClientEvents] = useState<GroupedClientEvents | null>(null);
 
   // Client history popup
   const [showClientHistory, setShowClientHistory] = useState(false);
@@ -684,6 +696,48 @@ const Admin = () => {
       toast.error("Erro ao exportar eventos");
     }
     setExportingEvents(false);
+  };
+
+  // Group events by client for the Events view
+  const getGroupedClientEvents = (): GroupedClientEvents[] => {
+    const grouped: { [key: number]: GroupedClientEvents } = {};
+    
+    allEvents.forEach(event => {
+      if (!grouped[event.cardId]) {
+        grouped[event.cardId] = {
+          cardId: event.cardId,
+          clientName: event.clientName,
+          clientPhone: event.clientPhone,
+          cardcode: event.cardcode,
+          events: [],
+          totalSelos: 0,
+          totalCheckins: 0,
+        };
+      }
+      grouped[event.cardId].events.push(event);
+      if (event.eventType === 'selo') {
+        grouped[event.cardId].totalSelos++;
+      } else {
+        grouped[event.cardId].totalCheckins++;
+      }
+    });
+    
+    // Sort events within each client by date (most recent first)
+    Object.values(grouped).forEach(client => {
+      client.events.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+    });
+    
+    // Sort clients by most recent event
+    return Object.values(grouped).sort((a, b) => {
+      const latestA = a.events[0]?.dateObj?.getTime() || 0;
+      const latestB = b.events[0]?.dateObj?.getTime() || 0;
+      return latestB - latestA;
+    });
+  };
+
+  const handleOpenClientEvents = (client: GroupedClientEvents) => {
+    setSelectedClientEvents(client);
+    setShowClientEventsModal(true);
   };
 
   const getSortedStampsData = () => {
@@ -2120,9 +2174,9 @@ END:VCARD`;
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-white">Todos os Eventos</h2>
+                <h2 className="text-lg font-semibold text-white">Clientes</h2>
                 <Badge className="bg-purple-500/20 text-purple-500 border-0">
-                  {allEvents.length}
+                  {getGroupedClientEvents().length}
                 </Badge>
               </div>
               <Button
@@ -2146,48 +2200,43 @@ END:VCARD`;
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-500" />
                 <p className="text-gray-400 mt-2">Carregando...</p>
               </div>
-            ) : allEvents.length === 0 ? (
+            ) : getGroupedClientEvents().length === 0 ? (
               <div className="text-center py-12">
                 <ClipboardList className="w-12 h-12 mx-auto text-gray-600 mb-2" />
                 <p className="text-gray-400">Nenhum evento registrado</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {allEvents.map((event, idx) => (
+                {getGroupedClientEvents().map((client) => (
                   <div 
-                    key={`${event.cardId}-${event.eventType}-${event.eventNumber}-${idx}`}
-                    className="bg-[#1a1a1a] rounded-2xl p-4"
+                    key={client.cardId}
+                    onClick={() => handleOpenClientEvents(client)}
+                    className="bg-[#1a1a1a] rounded-2xl p-4 cursor-pointer hover:bg-[#252525] transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        event.eventType === 'selo' 
-                          ? 'bg-orange-500/20' 
-                          : 'bg-green-500/20'
-                      }`}>
-                        {event.eventType === 'selo' ? (
-                          <Star className="w-5 h-5 text-orange-500" />
-                        ) : (
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                        )}
+                      <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                        <Users className="w-6 h-6 text-purple-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-white font-medium truncate">{event.clientName}</p>
-                          <Badge className={`text-[10px] border-0 ${
-                            event.eventType === 'selo' 
-                              ? 'bg-orange-500/20 text-orange-400' 
-                              : 'bg-green-500/20 text-green-400'
-                          }`}>
-                            {event.eventType === 'selo' ? `${event.eventNumber}º Selo` : 'Check-in'}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          Cartão: {event.cardcode}
-                        </p>
+                        <p className="text-white font-medium truncate">{client.clientName}</p>
+                        {client.clientPhone && (
+                          <p className="text-xs text-gray-500">{client.clientPhone}</p>
+                        )}
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-white text-sm">{event.date}</p>
-                        <p className="text-gray-400 text-xs">{event.time}</p>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex gap-1">
+                          {client.totalSelos > 0 && (
+                            <Badge className="bg-orange-500/20 text-orange-400 border-0 text-[10px]">
+                              {client.totalSelos} Selos
+                            </Badge>
+                          )}
+                          {client.totalCheckins > 0 && (
+                            <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">
+                              {client.totalCheckins} Check-ins
+                            </Badge>
+                          )}
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-500" />
                       </div>
                     </div>
                   </div>
@@ -2196,6 +2245,75 @@ END:VCARD`;
             )}
           </div>
         )}
+
+        {/* Client Events Modal */}
+        <Dialog open={showClientEventsModal} onOpenChange={setShowClientEventsModal}>
+          <DialogContent className="sm:max-w-md bg-[#1a1a1a] border-white/10 text-white max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-500" />
+                {selectedClientEvents?.clientName}
+              </DialogTitle>
+              {selectedClientEvents?.clientPhone && (
+                <a 
+                  href={`https://api.whatsapp.com/send/?phone=55${selectedClientEvents.clientPhone.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá ${selectedClientEvents.clientName}`)}&type=phone_number&app_absent=0`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-green-500 font-bold flex items-center gap-1 hover:text-green-400"
+                >
+                  <Phone className="w-3 h-3" />
+                  {selectedClientEvents.clientPhone}
+                </a>
+              )}
+            </DialogHeader>
+            
+            <div className="flex gap-2 mt-2">
+              {selectedClientEvents?.totalSelos && selectedClientEvents.totalSelos > 0 && (
+                <Badge className="bg-orange-500/20 text-orange-400 border-0">
+                  {selectedClientEvents.totalSelos} Selos
+                </Badge>
+              )}
+              {selectedClientEvents?.totalCheckins && selectedClientEvents.totalCheckins > 0 && (
+                <Badge className="bg-green-500/20 text-green-400 border-0">
+                  {selectedClientEvents.totalCheckins} Check-ins
+                </Badge>
+              )}
+            </div>
+
+            <div className="overflow-y-auto flex-1 mt-4 space-y-2 pr-1">
+              {selectedClientEvents?.events.map((event, idx) => (
+                <div 
+                  key={`${event.eventType}-${event.eventNumber}-${idx}`}
+                  className="bg-[#252525] rounded-xl p-3 flex items-center gap-3"
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    event.eventType === 'selo' 
+                      ? 'bg-orange-500/20' 
+                      : 'bg-green-500/20'
+                  }`}>
+                    {event.eventType === 'selo' ? (
+                      <Star className="w-5 h-5 text-orange-500" />
+                    ) : (
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium">
+                      {event.eventType === 'selo' ? `${event.eventNumber}º Selo` : `Check-in #${event.eventNumber}`}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Cartão: {event.cardcode}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-white text-sm">{event.date}</p>
+                    <p className="text-gray-400 text-xs">{event.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
 
       {/* Export Modal */}
