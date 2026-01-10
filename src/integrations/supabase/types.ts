@@ -47,6 +47,7 @@ export type Database = {
       "CRF-Cards": {
         Row: {
           cardcode: string | null
+          checkin: string | null
           completed: boolean | null
           completedat: string | null
           created_at: string
@@ -62,6 +63,7 @@ export type Database = {
         }
         Insert: {
           cardcode?: string | null
+          checkin?: string | null
           completed?: boolean | null
           completedat?: string | null
           created_at?: string
@@ -77,6 +79,7 @@ export type Database = {
         }
         Update: {
           cardcode?: string | null
+          checkin?: string | null
           completed?: boolean | null
           completedat?: string | null
           created_at?: string
