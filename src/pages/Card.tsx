@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car, Rocket, PawPrint, Beef, Settings, Square, ToyBrick, Wrench, Triangle, Glasses, Footprints, Pizza, Coffee, WashingMachine, Monitor, ShieldCheck, Bell, CheckCircle2, MapPin } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
-import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
+import { getCoCardByUuid, getActiveCoCards, CoCard } from "@/hooks/useCoCards";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -144,12 +144,30 @@ const CardPage = () => {
           checkin: card.checkin || null,
         });
 
-        // Busca o CoCard (template da promoção) se existir referência
+        // Busca o CoCard (template da promoção)
+        let foundCoCard = null;
+        
+        // Primeiro tenta pelo idemp (UUID do template)
         if (card.idemp) {
           const { coCard } = await getCoCardByUuid(card.idemp);
           if (coCard) {
-            setCoCardData(coCard);
+            foundCoCard = coCard;
           }
+        }
+        
+        // Se não encontrou pelo idemp, busca primeiro CoCard ativo da empresa
+        if (!foundCoCard && card.idclient) {
+          const client = await getClientByCardId(card.idclient);
+          if (client?.eid) {
+            const { coCards } = await getActiveCoCards(Number(client.eid));
+            if (coCards && coCards.length > 0) {
+              foundCoCard = coCards[0];
+            }
+          }
+        }
+        
+        if (foundCoCard) {
+          setCoCardData(foundCoCard);
         }
 
         // Busca o cliente pelo cardid
