@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car, Rocket, PawPrint, Beef, Settings, Square, ToyBrick, Wrench, Triangle, Glasses, Footprints, Pizza, Coffee, WashingMachine, Monitor, ShieldCheck, Bell, CheckCircle2 } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car, Rocket, PawPrint, Beef, Settings, Square, ToyBrick, Wrench, Triangle, Glasses, Footprints, Pizza, Coffee, WashingMachine, Monitor, ShieldCheck, Bell, CheckCircle2, MapPin } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
 import { supabase } from "@/integrations/supabase/client";
@@ -482,38 +482,40 @@ const CardPage = () => {
             {cardData.cardcode}
           </div>
           
-          <div className="bg-white p-2 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-[clamp(80px,20vw,100px)] h-[clamp(80px,20vw,100px)] flex items-center justify-center">
-            <img 
-              src={qrCodeUrl} 
-              alt="QR Code" 
-              className="w-full h-auto" 
-            />
-          </div>
+          {/* QR Code + Check-In side by side */}
+          <div className="flex flex-row items-center justify-center gap-3">
+            {/* QR Code - Left */}
+            <div className="bg-white p-2 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.3)] w-[clamp(70px,18vw,90px)] h-[clamp(70px,18vw,90px)] flex items-center justify-center">
+              <img 
+                src={qrCodeUrl} 
+                alt="QR Code" 
+                className="w-full h-auto" 
+              />
+            </div>
 
-          {/* Check-In Button */}
-          <Button
-            onClick={handleCheckIn}
-            disabled={checkingIn || hasCheckedInToday() || cardData.rescued}
-            className={`w-full max-w-[200px] h-12 rounded-2xl font-bold text-base shadow-lg transition-all ${
-              hasCheckedInToday() 
-                ? 'bg-green-600 text-white cursor-default' 
-                : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-95'
-            }`}
-          >
-            {checkingIn ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : hasCheckedInToday() ? (
-              <>
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-                Check-in Feito
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-                CHECK IN
-              </>
-            )}
-          </Button>
+            {/* Check-In Button - Right */}
+            <button
+              onClick={handleCheckIn}
+              disabled={checkingIn || hasCheckedInToday() || cardData.rescued}
+              className="w-[clamp(70px,18vw,90px)] h-[clamp(70px,18vw,90px)] rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center transition-all active:scale-95 disabled:active:scale-100"
+              style={{
+                backgroundColor: cardData.rescued 
+                  ? '#9ca3af' 
+                  : hasCheckedInToday() 
+                    ? '#22c55e' 
+                    : '#3b82f6',
+                opacity: cardData.rescued ? 0.6 : 1,
+              }}
+            >
+              {checkingIn ? (
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              ) : hasCheckedInToday() ? (
+                <CheckCircle2 className="w-8 h-8 text-white" />
+              ) : (
+                <MapPin className="w-8 h-8 text-white" />
+              )}
+            </button>
+          </div>
           
           <div className="text-[clamp(7px,1.8vw,9px)] tracking-[1.5px] text-[#444] font-bold">
             FIDELICARD ®
