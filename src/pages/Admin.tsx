@@ -18,7 +18,7 @@ import {
   Plus, QrCode, Search, Users, LogOut, Pencil, X, Check, Loader2,
   Building, Gift, Trash2, CreditCard, Armchair, Star, Circle, Rocket, PawPrint, Beef, Settings, Square,
   Download, FileText, ChevronRight, Phone, Calendar, Eye,
-  ArrowDownAZ, ArrowUpZA, CalendarDays,
+  ArrowDownAZ, ArrowUpZA, CalendarDays, CheckCircle2, ClipboardList,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -88,7 +88,31 @@ interface CoCardForm {
   renewable: boolean;
 }
 
-type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export' | 'stamps' | 'completed';
+type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export' | 'stamps' | 'completed' | 'checkin' | 'events';
+
+interface CheckinClient {
+  cardId: number;
+  clientId: number;
+  clientName: string;
+  clientPhone: string;
+  checkinTime: string;
+  hasStampToday: boolean;
+  custamp: number;
+  reqstamp: number;
+  completed: boolean;
+}
+
+interface AllEvent {
+  cardId: number;
+  clientName: string;
+  clientPhone: string;
+  cardcode: string;
+  eventType: 'selo' | 'checkin';
+  eventNumber: number;
+  date: string;
+  time: string;
+  dateObj: Date;
+}
 
 interface StampEvent {
   cardId: number;
@@ -165,6 +189,16 @@ const Admin = () => {
   const [completedCards, setCompletedCards] = useState<CompletedCard[]>([]);
   const [loadingCompleted, setLoadingCompleted] = useState(false);
   const [showRescuedOnly, setShowRescuedOnly] = useState(false);
+
+  // Check-in view
+  const [checkinClients, setCheckinClients] = useState<CheckinClient[]>([]);
+  const [loadingCheckin, setLoadingCheckin] = useState(false);
+  const [addingStampToAll, setAddingStampToAll] = useState(false);
+
+  // Events view
+  const [allEvents, setAllEvents] = useState<AllEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [exportingEvents, setExportingEvents] = useState(false);
 
   // Client history popup
   const [showClientHistory, setShowClientHistory] = useState(false);
@@ -400,6 +434,256 @@ const Admin = () => {
   const handleOpenCompletedView = async () => {
     setActiveView('completed');
     await loadCompletedCards();
+  };
+
+  // Load today's check-ins
+  const loadCheckinData = async () => {
+    if (!companyId) return;
+    setLoadingCheckin(true);
+    
+    try {
+      const today = new Date();
+      const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+      
+      // Get all cards with checkin data
+      const { data: cards, error } = await supabase
+        .from("CRF-Cards")
+        .select("id, checkin, events, custamp, reqstamp, completed, idclient");
+      
+      if (error) throw error;
+      
+      const todayCheckins: CheckinClient[] = [];
+      
+      for (const card of cards || []) {
+        if (!card.checkin) continue;
+        
+        // Find client for this card
+        const client = clients.find(c => c.cardId === card.id);
+        if (!client) continue;
+        
+        // Check if checked in today
+        const checkinEntries = card.checkin.split(';');
+        let checkinTime = '';
+        for (const entry of checkinEntries) {
+          const match = entry.match(/\d+checkin='(\d{2}\/\d{2}\/\d{4}) \| (\d{2}:\d{2})'/);
+          if (match && match[1] === todayStr) {
+            checkinTime = match[2];
+            break;
+          }
+        }
+        
+        if (!checkinTime) continue;
+        
+        // Check if already received stamp today
+        let hasStampToday = false;
+        if (card.events) {
+          const eventEntries = card.events.split(';');
+          for (const entry of eventEntries) {
+            const match = entry.match(/\d+selo='(\d{2}\/\d{2}\/\d{4}) \| \d{2}:\d{2}'/);
+            if (match && match[1] === todayStr) {
+              hasStampToday = true;
+              break;
+            }
+          }
+        }
+        
+        todayCheckins.push({
+          cardId: card.id,
+          clientId: client.clientId,
+          clientName: client.nome || 'Cliente',
+          clientPhone: client.phone || '',
+          checkinTime,
+          hasStampToday,
+          custamp: card.custamp || 0,
+          reqstamp: card.reqstamp || 10,
+          completed: card.completed || false,
+        });
+      }
+      
+      // Sort by check-in time
+      todayCheckins.sort((a, b) => {
+        const [hA, mA] = a.checkinTime.split(':').map(Number);
+        const [hB, mB] = b.checkinTime.split(':').map(Number);
+        return (hB * 60 + mB) - (hA * 60 + mA); // Most recent first
+      });
+      
+      setCheckinClients(todayCheckins);
+    } catch (err) {
+      console.error('Error loading check-ins:', err);
+      toast.error('Erro ao carregar check-ins');
+    }
+    
+    setLoadingCheckin(false);
+  };
+
+  const handleOpenCheckinView = async () => {
+    setActiveView('checkin');
+    await loadCheckinData();
+  };
+
+  // Add stamp to single checkin client
+  const handleAddStampToCheckin = async (client: CheckinClient) => {
+    if (client.hasStampToday || client.completed) return;
+    
+    setAddingStamp(client.cardId);
+    
+    const { success, newStamps, isCompleted, error } = await addStampToCard(
+      client.cardId,
+      client.custamp,
+      client.reqstamp
+    );
+
+    if (success) {
+      toast.success(
+        isCompleted 
+          ? `Parabéns! ${client.clientName} completou o cartão!` 
+          : `Selo adicionado! ${newStamps}/${client.reqstamp}`
+      );
+      await loadCheckinData();
+      await loadClients();
+    } else {
+      toast.error(error || "Erro ao adicionar selo");
+    }
+    
+    setAddingStamp(null);
+  };
+
+  // Add stamp to all today's checkins
+  const handleAddStampToAllCheckins = async () => {
+    const eligibleClients = checkinClients.filter(c => !c.hasStampToday && !c.completed);
+    if (eligibleClients.length === 0) {
+      toast.info("Todos os clientes já receberam selo hoje");
+      return;
+    }
+    
+    setAddingStampToAll(true);
+    let successCount = 0;
+    
+    for (const client of eligibleClients) {
+      const { success } = await addStampToCard(
+        client.cardId,
+        client.custamp,
+        client.reqstamp
+      );
+      if (success) successCount++;
+    }
+    
+    toast.success(`${successCount} selos adicionados!`);
+    await loadCheckinData();
+    await loadClients();
+    setAddingStampToAll(false);
+  };
+
+  // Load all events (stamps + checkins)
+  const loadAllEvents = async () => {
+    if (!companyId) return;
+    setLoadingEvents(true);
+    
+    try {
+      const { data: cards, error } = await supabase
+        .from("CRF-Cards")
+        .select("id, events, checkin, cardcode, idclient");
+      
+      if (error) throw error;
+      
+      const events: AllEvent[] = [];
+      
+      for (const card of cards || []) {
+        const client = clients.find(c => c.cardId === card.id);
+        if (!client) continue;
+        
+        // Parse stamp events
+        if (card.events) {
+          const entries = card.events.split(';');
+          for (const entry of entries) {
+            const match = entry.match(/(\d+)selo='(\d{2}\/\d{2}\/\d{4}) \| (\d{2}:\d{2})'/);
+            if (match) {
+              const [day, month, year] = match[2].split('/').map(Number);
+              const [hour, min] = match[3].split(':').map(Number);
+              events.push({
+                cardId: card.id,
+                clientName: client.nome || 'Cliente',
+                clientPhone: client.phone || '',
+                cardcode: card.cardcode || '',
+                eventType: 'selo',
+                eventNumber: parseInt(match[1]),
+                date: match[2],
+                time: match[3],
+                dateObj: new Date(year, month - 1, day, hour, min),
+              });
+            }
+          }
+        }
+        
+        // Parse checkin events
+        if (card.checkin) {
+          const entries = card.checkin.split(';');
+          for (const entry of entries) {
+            const match = entry.match(/(\d+)checkin='(\d{2}\/\d{2}\/\d{4}) \| (\d{2}:\d{2})'/);
+            if (match) {
+              const [day, month, year] = match[2].split('/').map(Number);
+              const [hour, min] = match[3].split(':').map(Number);
+              events.push({
+                cardId: card.id,
+                clientName: client.nome || 'Cliente',
+                clientPhone: client.phone || '',
+                cardcode: card.cardcode || '',
+                eventType: 'checkin',
+                eventNumber: parseInt(match[1]),
+                date: match[2],
+                time: match[3],
+                dateObj: new Date(year, month - 1, day, hour, min),
+              });
+            }
+          }
+        }
+      }
+      
+      // Sort by date (most recent first)
+      events.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+      
+      setAllEvents(events);
+    } catch (err) {
+      console.error('Error loading events:', err);
+      toast.error('Erro ao carregar eventos');
+    }
+    
+    setLoadingEvents(false);
+  };
+
+  const handleOpenEventsView = async () => {
+    setActiveView('events');
+    await loadAllEvents();
+  };
+
+  // Export events to XLS (CSV with semicolon for Excel compatibility)
+  const exportEventsToXLS = () => {
+    setExportingEvents(true);
+    try {
+      const headers = ['Nome', 'Telefone', 'Data', 'Hora', 'Tipo', 'Cartao', 'Numero'];
+      const rows = allEvents.map(event => [
+        event.clientName,
+        event.clientPhone,
+        event.date,
+        event.time,
+        event.eventType === 'selo' ? 'Selo' : 'Check-in',
+        event.cardcode,
+        event.eventNumber.toString(),
+      ]);
+      
+      // Use semicolon for Excel compatibility in Brazil
+      const csvContent = [headers, ...rows].map(row => row.join(';')).join('\n');
+      const bom = '\uFEFF'; // UTF-8 BOM for Excel
+      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `eventos_${companyName}_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      toast.success("Eventos exportados!");
+    } catch (err) {
+      toast.error("Erro ao exportar eventos");
+    }
+    setExportingEvents(false);
   };
 
   const getSortedStampsData = () => {
@@ -964,31 +1248,62 @@ END:VCARD`;
         {/* Main Menu View */}
         {activeView === 'menu' && (
           <div className="space-y-4">
-            {/* Stats Summary */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <div 
-                className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
-                onClick={() => setActiveView('clients')}
-              >
-                <Users className="w-5 h-5 mx-auto mb-1 text-orange-500" />
-                <p className="text-xl font-bold text-white">{clients.length}</p>
-                <p className="text-[10px] text-gray-400">Clientes</p>
+            {/* Stats Summary - 3x2 Grid */}
+            <div className="space-y-3 mb-6">
+              {/* Row 1 */}
+              <div className="grid grid-cols-3 gap-3">
+                <div 
+                  className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+                  onClick={() => setActiveView('clients')}
+                >
+                  <Users className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+                  <p className="text-xl font-bold text-white">{clients.length}</p>
+                  <p className="text-[10px] text-gray-400">Clientes</p>
+                </div>
+                <div 
+                  className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+                  onClick={() => handleOpenStampsView()}
+                >
+                  <Star className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+                  <p className="text-xl font-bold text-white">{totalStamps}</p>
+                  <p className="text-[10px] text-gray-400">Selos</p>
+                </div>
+                <div 
+                  className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+                  onClick={() => handleOpenCompletedView()}
+                >
+                  <Gift className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+                  <p className="text-xl font-bold text-white">{completedCount}</p>
+                  <p className="text-[10px] text-gray-400">Completos</p>
+                </div>
               </div>
-            <div 
-              className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
-              onClick={() => handleOpenStampsView()}
-            >
-              <Star className="w-5 h-5 mx-auto mb-1 text-orange-500" />
-              <p className="text-xl font-bold text-white">{totalStamps}</p>
-              <p className="text-[10px] text-gray-400">Selos</p>
-            </div>
-              <div 
-                className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
-                onClick={() => handleOpenCompletedView()}
-              >
-                <Gift className="w-5 h-5 mx-auto mb-1 text-orange-500" />
-                <p className="text-xl font-bold text-white">{completedCount}</p>
-                <p className="text-[10px] text-gray-400">Completos</p>
+              
+              {/* Row 2 */}
+              <div className="grid grid-cols-3 gap-3">
+                <div 
+                  className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+                  onClick={() => handleOpenCheckinView()}
+                >
+                  <CheckCircle2 className="w-5 h-5 mx-auto mb-1 text-green-500" />
+                  <p className="text-xl font-bold text-white">{checkinClients.length}</p>
+                  <p className="text-[10px] text-gray-400">CheckIn</p>
+                </div>
+                <div 
+                  className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+                  onClick={() => handleOpenCompanyView()}
+                >
+                  <Settings className="w-5 h-5 mx-auto mb-1 text-blue-500" />
+                  <p className="text-xl font-bold text-white">⚙️</p>
+                  <p className="text-[10px] text-gray-400">Config.</p>
+                </div>
+                <div 
+                  className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#252525] transition-colors"
+                  onClick={() => handleOpenEventsView()}
+                >
+                  <ClipboardList className="w-5 h-5 mx-auto mb-1 text-purple-500" />
+                  <p className="text-xl font-bold text-white">{allEvents.length || '📋'}</p>
+                  <p className="text-[10px] text-gray-400">Eventos</p>
+                </div>
               </div>
             </div>
 
@@ -1676,6 +1991,203 @@ END:VCARD`;
                             Sem histórico de selos
                           </p>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CheckIn View */}
+        {activeView === 'checkin' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold text-white">Check-ins de Hoje</h2>
+                <Badge className="bg-green-500/20 text-green-500 border-0">
+                  {checkinClients.length}
+                </Badge>
+              </div>
+              {checkinClients.filter(c => !c.hasStampToday && !c.completed).length > 0 && (
+                <Button
+                  onClick={handleAddStampToAllCheckins}
+                  disabled={addingStampToAll}
+                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-4 py-2 text-sm font-bold"
+                >
+                  {addingStampToAll ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Selo p/ Todos
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {loadingCheckin ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-500" />
+                <p className="text-gray-400 mt-2">Carregando...</p>
+              </div>
+            ) : checkinClients.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckCircle2 className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+                <p className="text-gray-400">Nenhum check-in hoje</p>
+                <p className="text-xs text-gray-500">Os clientes podem fazer check-in pelo cartão digital</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {checkinClients.map((client) => (
+                  <div 
+                    key={client.cardId}
+                    className="bg-[#1a1a1a] rounded-2xl p-4"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-white">{client.clientName}</p>
+                          {client.clientPhone && (
+                            <a 
+                              href={`https://api.whatsapp.com/send/?phone=55${client.clientPhone.replace(/\D/g, '')}&text=${encodeURIComponent(`Olá ${client.clientName}`)}&type=phone_number&app_absent=0`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-green-500 font-bold flex items-center gap-1 hover:text-green-400"
+                            >
+                              <Phone className="w-3 h-3" />
+                              {client.clientPhone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 mb-1">Check-in às</p>
+                        <p className="text-white font-bold">{client.checkinTime}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">
+                          Selos: <span className="text-orange-500 font-bold">{client.custamp}/{client.reqstamp}</span>
+                        </span>
+                        {client.hasStampToday ? (
+                          <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">
+                            Selo Hoje ✓
+                          </Badge>
+                        ) : client.completed ? (
+                          <Badge className="bg-purple-500/20 text-purple-400 border-0 text-[10px]">
+                            Completo
+                          </Badge>
+                        ) : null}
+                      </div>
+                      
+                      {!client.hasStampToday && !client.completed && (
+                        <Button
+                          size="sm"
+                          className="bg-orange-500 hover:bg-orange-600 text-white h-9 px-4"
+                          onClick={() => handleAddStampToCheckin(client)}
+                          disabled={addingStamp === client.cardId}
+                        >
+                          {addingStamp === client.cardId ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4 mr-1" />
+                              Selo
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Events View */}
+        {activeView === 'events' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold text-white">Todos os Eventos</h2>
+                <Badge className="bg-purple-500/20 text-purple-500 border-0">
+                  {allEvents.length}
+                </Badge>
+              </div>
+              <Button
+                onClick={exportEventsToXLS}
+                disabled={exportingEvents || allEvents.length === 0}
+                className="bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-2 text-sm font-bold"
+              >
+                {exportingEvents ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-1" />
+                    Exportar XLS
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {loadingEvents ? (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-500" />
+                <p className="text-gray-400 mt-2">Carregando...</p>
+              </div>
+            ) : allEvents.length === 0 ? (
+              <div className="text-center py-12">
+                <ClipboardList className="w-12 h-12 mx-auto text-gray-600 mb-2" />
+                <p className="text-gray-400">Nenhum evento registrado</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {allEvents.map((event, idx) => (
+                  <div 
+                    key={`${event.cardId}-${event.eventType}-${event.eventNumber}-${idx}`}
+                    className="bg-[#1a1a1a] rounded-2xl p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        event.eventType === 'selo' 
+                          ? 'bg-orange-500/20' 
+                          : 'bg-green-500/20'
+                      }`}>
+                        {event.eventType === 'selo' ? (
+                          <Star className="w-5 h-5 text-orange-500" />
+                        ) : (
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-white font-medium truncate">{event.clientName}</p>
+                          <Badge className={`text-[10px] border-0 ${
+                            event.eventType === 'selo' 
+                              ? 'bg-orange-500/20 text-orange-400' 
+                              : 'bg-green-500/20 text-green-400'
+                          }`}>
+                            {event.eventType === 'selo' ? `${event.eventNumber}º Selo` : 'Check-in'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Cartão: {event.cardcode}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-white text-sm">{event.date}</p>
+                        <p className="text-gray-400 text-xs">{event.time}</p>
                       </div>
                     </div>
                   </div>

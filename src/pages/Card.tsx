@@ -2,11 +2,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car, Rocket, PawPrint, Beef, Settings, Square, ToyBrick, Wrench, Triangle, Glasses, Footprints, Pizza, Coffee, WashingMachine, Monitor, ShieldCheck, Bell } from "lucide-react";
+import { UtensilsCrossed, Loader2, ArrowLeft, Gift, RotateCcw, Scissors, Armchair, Clock, Star, X, Circle, Car, Rocket, PawPrint, Beef, Settings, Square, ToyBrick, Wrench, Triangle, Glasses, Footprints, Pizza, Coffee, WashingMachine, Monitor, ShieldCheck, Bell, CheckCircle2 } from "lucide-react";
 import { getCardByCode, getClientByCardId, getCompany } from "@/hooks/useLoyalty";
 import { getCoCardByUuid, CoCard } from "@/hooks/useCoCards";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CardData {
+  id: number;
   cardcode: string;
   custamp: number;
   reqstamp: number;
@@ -14,6 +17,7 @@ interface CardData {
   rescued: boolean;
   expiredate: string | null;
   idemp: string | null;
+  checkin: string | null;
 }
 
 interface ClientData {
@@ -44,6 +48,72 @@ const CardPage = () => {
   const [coCardData, setCoCardData] = useState<CoCard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
+
+  // Format date to Brazilian format DD/MM/YYYY | HH:mm
+  const formatEventDate = (date: Date): string => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${day}/${month}/${year} | ${hours}:${minutes}`;
+  };
+
+  // Check if already checked in today
+  const hasCheckedInToday = (): boolean => {
+    if (!cardData?.checkin) return false;
+    
+    const today = new Date();
+    const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+    
+    // Parse checkin entries: "1checkin='10/01/2026 | 14:30';2checkin='15/01/2026 | 09:00'"
+    const entries = cardData.checkin.split(';');
+    for (const entry of entries) {
+      if (entry.includes(todayStr)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Handle check-in
+  const handleCheckIn = async () => {
+    if (!cardData || checkingIn || hasCheckedInToday()) return;
+    
+    setCheckingIn(true);
+    try {
+      const eventDate = formatEventDate(new Date());
+      
+      // Count existing checkins
+      const existingCheckins = cardData.checkin 
+        ? cardData.checkin.split(';').filter(Boolean).length 
+        : 0;
+      const newCheckinNumber = existingCheckins + 1;
+      const newCheckinEntry = `${newCheckinNumber}checkin='${eventDate}'`;
+      
+      // Append to existing checkins or start new
+      const updatedCheckin = cardData.checkin 
+        ? `${cardData.checkin};${newCheckinEntry}` 
+        : newCheckinEntry;
+
+      const { error: updateError } = await supabase
+        .from("CRF-Cards")
+        .update({ checkin: updatedCheckin })
+        .eq("id", cardData.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setCardData({ ...cardData, checkin: updatedCheckin });
+      toast.success("Check-in realizado com sucesso!");
+    } catch (err) {
+      console.error("Error checking in:", err);
+      toast.error("Erro ao realizar check-in");
+    } finally {
+      setCheckingIn(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,6 +133,7 @@ const CardPage = () => {
         }
 
         setCardData({
+          id: card.id,
           cardcode: card.cardcode || code,
           custamp: Number(card.custamp) || 0,
           reqstamp: Number(card.reqstamp) || 10,
@@ -70,6 +141,7 @@ const CardPage = () => {
           rescued: card.rescued || false,
           expiredate: card.expiredate || null,
           idemp: card.idemp || null,
+          checkin: card.checkin || null,
         });
 
         // Busca o CoCard (template da promoção) se existir referência
@@ -417,6 +489,31 @@ const CardPage = () => {
               className="w-full h-auto" 
             />
           </div>
+
+          {/* Check-In Button */}
+          <Button
+            onClick={handleCheckIn}
+            disabled={checkingIn || hasCheckedInToday() || cardData.rescued}
+            className={`w-full max-w-[200px] h-12 rounded-2xl font-bold text-base shadow-lg transition-all ${
+              hasCheckedInToday() 
+                ? 'bg-green-600 text-white cursor-default' 
+                : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-95'
+            }`}
+          >
+            {checkingIn ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : hasCheckedInToday() ? (
+              <>
+                <CheckCircle2 className="w-5 h-5 mr-2" />
+                Check-in Feito
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-5 h-5 mr-2" />
+                CHECK IN
+              </>
+            )}
+          </Button>
           
           <div className="text-[clamp(7px,1.8vw,9px)] tracking-[1.5px] text-[#444] font-bold">
             FIDELICARD ®
