@@ -172,14 +172,14 @@ const Scanner = () => {
   const [isRescuing, setIsRescuing] = useState(false);
   const [rescued, setRescued] = useState(false);
 
-  const handleAddStamp = async () => {
+  const handleAddStamp = async (stampsToAdd: number = 1) => {
     if (!scannedCard || scannedCard.completed) return;
     
     setIsAddingStamp(true);
     try {
-      await addStampToCard(scannedCard.cardId, scannedCard.custamp, scannedCard.reqstamp);
+      await addStampToCard(scannedCard.cardId, scannedCard.custamp, scannedCard.reqstamp, stampsToAdd);
       
-      const newStamps = scannedCard.custamp + 1;
+      const newStamps = Math.min(scannedCard.custamp + stampsToAdd, scannedCard.reqstamp);
       const isCompleted = newStamps >= scannedCard.reqstamp;
       
       setScannedCard({
@@ -189,7 +189,7 @@ const Scanner = () => {
       });
       
       setStampAdded(true);
-      toast.success("Selo adicionado!", {
+      toast.success(stampsToAdd > 1 ? `${stampsToAdd} selos adicionados!` : "Selo adicionado!", {
         description: `${scannedCard.clientName || "Cliente"} agora tem ${newStamps}/${scannedCard.reqstamp} selos`
       });
     } catch (err) {
@@ -363,16 +363,30 @@ const Scanner = () => {
                       RESGATAR
                     </Button>
                   ) : (
-                    <Button
-                      className="flex-1 bg-[#b8860b] hover:bg-[#a07608] text-white"
-                      onClick={handleAddStamp}
-                      disabled={isAddingStamp}
-                    >
-                      {isAddingStamp ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : null}
-                      Adicionar Selo
-                    </Button>
+                    <div className="flex gap-2 flex-1">
+                      <Button
+                        className="flex-1 bg-[#b8860b] hover:bg-[#a07608] text-white font-bold"
+                        onClick={() => handleAddStamp(1)}
+                        disabled={isAddingStamp}
+                      >
+                        {isAddingStamp ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          "+1 SELO"
+                        )}
+                      </Button>
+                      <Button
+                        className="flex-1 bg-[#b8860b] hover:bg-[#a07608] text-white font-bold"
+                        onClick={() => handleAddStamp(2)}
+                        disabled={isAddingStamp}
+                      >
+                        {isAddingStamp ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          "+2 SELOS"
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </div>
               )}
