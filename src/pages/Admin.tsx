@@ -457,21 +457,32 @@ const Admin = () => {
       const today = new Date();
       const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
       
-      // Get all cards with checkin data
+      // Get all cards with checkin data for this company
       const { data: cards, error } = await supabase
         .from("CRF-Cards")
-        .select("id, checkin, events, custamp, reqstamp, completed, idclient");
+        .select("id, checkin, events, custamp, reqstamp, completed, idclient")
+        .eq("idemp", companyId);
       
       if (error) throw error;
+      
+      // Pre-load all clients for this company and create a map by cardid
+      const { data: allClients } = await supabase
+        .from("CRF-Clients")
+        .select("id, nome, phone, cardid")
+        .eq("eid", parseInt(companyId));
+      
+      const clientsByCardId = new Map(
+        (allClients || []).map(c => [c.cardid, c])
+      );
       
       const todayCheckins: CheckinClient[] = [];
       
       for (const card of cards || []) {
         if (!card.checkin) continue;
         
-        // Find client for this card
-        const client = clients.find(c => c.cardId === card.id);
-        if (!client) continue;
+        // Find client for this card using the idclient (UUID) field
+        const clientData = clientsByCardId.get(card.idclient);
+        if (!clientData) continue;
         
         // Check if checked in today
         const checkinEntries = card.checkin.split(';');
@@ -501,9 +512,9 @@ const Admin = () => {
         
         todayCheckins.push({
           cardId: card.id,
-          clientId: client.clientId,
-          clientName: client.nome || 'Cliente',
-          clientPhone: client.phone || '',
+          clientId: clientData.id,
+          clientName: clientData.nome || 'Cliente',
+          clientPhone: clientData.phone || '',
           checkinTime,
           hasStampToday,
           custamp: card.custamp || 0,
