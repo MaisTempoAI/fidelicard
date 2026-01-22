@@ -457,23 +457,30 @@ const Admin = () => {
       const today = new Date();
       const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
       
-      // Get all cards with checkin data for this company
-      const { data: cards, error } = await supabase
-        .from("CRF-Cards")
-        .select("id, checkin, events, custamp, reqstamp, completed, idclient")
-        .eq("idemp", companyId);
-      
-      if (error) throw error;
-      
       // Pre-load all clients for this company and create a map by cardid
       const { data: allClients } = await supabase
         .from("CRF-Clients")
         .select("id, nome, phone, cardid")
         .eq("eid", parseInt(companyId));
       
+      if (!allClients || allClients.length === 0) {
+        setCheckinClients([]);
+        setLoadingCheckin(false);
+        return;
+      }
+      
       const clientsByCardId = new Map(
-        (allClients || []).map(c => [c.cardid, c])
+        allClients.map(c => [c.cardid, c])
       );
+      
+      // Get cards for these clients (filter by idclient which contains UUIDs matching cardid)
+      const clientCardIds = allClients.map(c => c.cardid).filter(Boolean);
+      const { data: cards, error } = await supabase
+        .from("CRF-Cards")
+        .select("id, checkin, events, custamp, reqstamp, completed, idclient")
+        .in("idclient", clientCardIds);
+      
+      if (error) throw error;
       
       const todayCheckins: CheckinClient[] = [];
       
@@ -544,8 +551,8 @@ const Admin = () => {
     await loadCheckinData();
   };
 
-  // Add stamp to single checkin client
-  const handleAddStampToCheckin = async (client: CheckinClient) => {
+  // Add stamp to single checkin client (supports multiple stamps)
+  const handleAddStampToCheckin = async (client: CheckinClient, stampsToAdd: number = 1) => {
     if (client.hasStampToday || client.completed) return;
     
     setAddingStamp(client.cardId);
@@ -553,14 +560,15 @@ const Admin = () => {
     const { success, newStamps, isCompleted, error } = await addStampToCard(
       client.cardId,
       client.custamp,
-      client.reqstamp
+      client.reqstamp,
+      stampsToAdd
     );
 
     if (success) {
       toast.success(
         isCompleted 
           ? `Parabéns! ${client.clientName} completou o cartão!` 
-          : `Selo adicionado! ${newStamps}/${client.reqstamp}`
+          : `${stampsToAdd} selo(s) adicionado(s)! ${newStamps}/${client.reqstamp}`
       );
       await loadCheckinData();
       await loadClients();
@@ -2155,21 +2163,28 @@ END:VCARD`;
                       </div>
                       
                       {!client.hasStampToday && !client.completed && (
-                        <Button
-                          size="sm"
-                          className="bg-orange-500 hover:bg-orange-600 text-white h-9 px-4"
-                          onClick={() => handleAddStampToCheckin(client)}
-                          disabled={addingStamp === client.cardId}
-                        >
-                          {addingStamp === client.cardId ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Plus className="w-4 h-4 mr-1" />
-                              Selo
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white h-9 px-3"
+                            onClick={() => handleAddStampToCheckin(client, 1)}
+                            disabled={addingStamp === client.cardId}
+                          >
+                            {addingStamp === client.cardId ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              "+1"
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-orange-600 hover:bg-orange-700 text-white h-9 px-3"
+                            onClick={() => handleAddStampToCheckin(client, 2)}
+                            disabled={addingStamp === client.cardId}
+                          >
+                            +2
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
