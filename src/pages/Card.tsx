@@ -500,40 +500,52 @@ const CardPage = () => {
             {cardData.cardcode}
           </div>
           
-          {/* QR Code + Check-In side by side */}
-          <div className="flex flex-row items-center justify-center gap-3">
-            {/* QR Code - Left */}
-            <div className="bg-white p-2 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.3)] w-[clamp(70px,18vw,90px)] h-[clamp(70px,18vw,90px)] flex items-center justify-center">
+          {/* QR Code + Check-In (conditional based on checkin_enable) */}
+          {coCardData?.checkin_enable !== false ? (
+            // With Check-In: QR + Button side by side
+            <div className="flex flex-row items-center justify-center gap-3">
+              {/* QR Code - Left */}
+              <div className="bg-white p-2 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.3)] w-[clamp(70px,18vw,90px)] h-[clamp(70px,18vw,90px)] flex items-center justify-center">
+                <img 
+                  src={qrCodeUrl} 
+                  alt="QR Code" 
+                  className="w-full h-auto" 
+                />
+              </div>
+
+              {/* Check-In Button - Right */}
+              <button
+                onClick={handleCheckIn}
+                disabled={checkingIn || hasCheckedInToday() || cardData.rescued}
+                className="w-[clamp(70px,18vw,90px)] h-[clamp(70px,18vw,90px)] rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center transition-all active:scale-95 disabled:active:scale-100"
+                style={{
+                  backgroundColor: cardData.rescued 
+                    ? '#9ca3af' 
+                    : hasCheckedInToday() 
+                      ? '#22c55e' 
+                      : '#3b82f6',
+                  opacity: cardData.rescued ? 0.6 : 1,
+                }}
+              >
+                {checkingIn ? (
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                ) : hasCheckedInToday() ? (
+                  <CheckCircle2 className="w-8 h-8 text-white" />
+                ) : (
+                  <MapPin className="w-8 h-8 text-white" />
+                )}
+              </button>
+            </div>
+          ) : (
+            // Without Check-In: Larger QR Code centered
+            <div className="bg-white p-2.5 rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.3)] w-[clamp(100px,25vw,130px)] h-[clamp(100px,25vw,130px)] flex items-center justify-center">
               <img 
                 src={qrCodeUrl} 
                 alt="QR Code" 
                 className="w-full h-auto" 
               />
             </div>
-
-            {/* Check-In Button - Right */}
-            <button
-              onClick={handleCheckIn}
-              disabled={checkingIn || hasCheckedInToday() || cardData.rescued}
-              className="w-[clamp(70px,18vw,90px)] h-[clamp(70px,18vw,90px)] rounded-[16px] shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center transition-all active:scale-95 disabled:active:scale-100"
-              style={{
-                backgroundColor: cardData.rescued 
-                  ? '#9ca3af' 
-                  : hasCheckedInToday() 
-                    ? '#22c55e' 
-                    : '#3b82f6',
-                opacity: cardData.rescued ? 0.6 : 1,
-              }}
-            >
-              {checkingIn ? (
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
-              ) : hasCheckedInToday() ? (
-                <CheckCircle2 className="w-8 h-8 text-white" />
-              ) : (
-                <MapPin className="w-8 h-8 text-white" />
-              )}
-            </button>
-          </div>
+          )}
           
           <div className="text-[clamp(7px,1.8vw,9px)] tracking-[1.5px] text-[#444] font-bold">
             FIDELICARD ®

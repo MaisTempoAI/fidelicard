@@ -86,6 +86,7 @@ interface CoCardForm {
   icon: string;
   active: boolean;
   renewable: boolean;
+  checkin_enable: boolean;
 }
 
 type ActiveView = 'menu' | 'clients' | 'cards' | 'company' | 'settings' | 'export' | 'stamps' | 'completed' | 'checkin' | 'events';
@@ -185,6 +186,7 @@ const Admin = () => {
     icon: "armchair",
     active: true,
     renewable: true,
+    checkin_enable: true,
   });
 
   // Export
@@ -957,6 +959,7 @@ const Admin = () => {
         icon: coCard.icon || "armchair",
         active: coCard.active ?? true,
         renewable: coCard.renewable ?? true,
+        checkin_enable: coCard.checkin_enable ?? true,
       });
     } else {
       setCoCardForm({
@@ -970,6 +973,7 @@ const Admin = () => {
         icon: "armchair",
         active: true,
         renewable: true,
+        checkin_enable: true,
       });
     }
     setShowCoCardForm(true);
@@ -996,6 +1000,7 @@ const Admin = () => {
           icon: coCardForm.icon,
           active: coCardForm.active,
           renewable: coCardForm.renewable,
+          checkin_enable: coCardForm.checkin_enable,
         });
         if (success) {
           toast.success("Cartão atualizado!");
@@ -1014,6 +1019,7 @@ const Admin = () => {
           icon: coCardForm.icon,
           active: coCardForm.active,
           renewable: coCardForm.renewable,
+          checkin_enable: coCardForm.checkin_enable,
         });
         if (coCard) {
           toast.success("Cartão criado!");
