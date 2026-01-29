@@ -18,8 +18,11 @@ import {
   Plus, QrCode, Search, Users, LogOut, Pencil, X, Check, Loader2,
   Building, Gift, Trash2, CreditCard, Armchair, Star, Circle, Rocket, PawPrint, Beef, Settings, Square,
   Download, FileText, ChevronRight, Phone, Calendar, Eye,
-  ArrowDownAZ, ArrowUpZA, CalendarDays, CheckCircle2, ClipboardList,
+  ArrowDownAZ, ArrowUpZA, CalendarDays, CheckCircle2, ClipboardList, ChevronLeft,
 } from "lucide-react";
+import { format, isToday } from "date-fns";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -97,7 +100,8 @@ interface CheckinClient {
   clientName: string;
   clientPhone: string;
   checkinTime: string;
-  hasStampToday: boolean;
+  checkinDate: string;
+  hasStampOnDate: boolean;
   custamp: number;
   reqstamp: number;
   completed: boolean;
@@ -205,6 +209,8 @@ const Admin = () => {
   // Check-in view
   const [checkinClients, setCheckinClients] = useState<CheckinClient[]>([]);
   const [loadingCheckin, setLoadingCheckin] = useState(false);
+  const [checkinDate, setCheckinDate] = useState<Date>(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [addingStampToAll, setAddingStampToAll] = useState(false);
 
   // Events view
@@ -247,6 +253,13 @@ const Admin = () => {
     }
     loadClients();
   }, [companyId]);
+
+  // Reload check-in data when date changes
+  useEffect(() => {
+    if (activeView === 'checkin') {
+      loadCheckinData(checkinDate);
+    }
+  }, [checkinDate]);
 
   const loadClients = async () => {
     if (!companyId) return;
@@ -450,14 +463,14 @@ const Admin = () => {
     await loadCompletedCards();
   };
 
-  // Load today's check-ins
-  const loadCheckinData = async () => {
+  // Load check-ins for a specific date
+  const loadCheckinData = async (targetDate?: Date) => {
     if (!companyId) return;
     setLoadingCheckin(true);
     
     try {
-      const today = new Date();
-      const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+      const dateToUse = targetDate || checkinDate;
+      const dateStr = format(dateToUse, 'dd/MM/yyyy');
       
       // Pre-load all clients for this company and create a map by cardid
       const { data: allClients } = await supabase
@@ -484,7 +497,7 @@ const Admin = () => {
       
       if (error) throw error;
       
-      const todayCheckins: CheckinClient[] = [];
+      const dateCheckins: CheckinClient[] = [];
       
       for (const card of cards || []) {
         if (!card.checkin) continue;
@@ -493,12 +506,12 @@ const Admin = () => {
         const clientData = clientsByCardId.get(card.idclient);
         if (!clientData) continue;
         
-        // Check if checked in today
+        // Check if checked in on the selected date
         const checkinEntries = card.checkin.split(';');
         let checkinTime = '';
         for (const entry of checkinEntries) {
           const match = entry.match(/\d+checkin='(\d{2}\/\d{2}\/\d{4}) \| (\d{2}:\d{2})'/);
-          if (match && match[1] === todayStr) {
+          if (match && match[1] === dateStr) {
             checkinTime = match[2];
             break;
           }
@@ -506,26 +519,27 @@ const Admin = () => {
         
         if (!checkinTime) continue;
         
-        // Check if already received stamp today
-        let hasStampToday = false;
+        // Check if already received stamp on the selected date
+        let hasStampOnDate = false;
         if (card.events) {
           const eventEntries = card.events.split(';');
           for (const entry of eventEntries) {
             const match = entry.match(/\d+selo='(\d{2}\/\d{2}\/\d{4}) \| \d{2}:\d{2}'/);
-            if (match && match[1] === todayStr) {
-              hasStampToday = true;
+            if (match && match[1] === dateStr) {
+              hasStampOnDate = true;
               break;
             }
           }
         }
         
-        todayCheckins.push({
+        dateCheckins.push({
           cardId: card.id,
           clientId: clientData.id,
           clientName: clientData.nome || 'Cliente',
           clientPhone: clientData.phone || '',
           checkinTime,
-          hasStampToday,
+          checkinDate: dateStr,
+          hasStampOnDate,
           custamp: card.custamp || 0,
           reqstamp: card.reqstamp || 10,
           completed: card.completed || false,
@@ -533,13 +547,13 @@ const Admin = () => {
       }
       
       // Sort by check-in time
-      todayCheckins.sort((a, b) => {
+      dateCheckins.sort((a, b) => {
         const [hA, mA] = a.checkinTime.split(':').map(Number);
         const [hB, mB] = b.checkinTime.split(':').map(Number);
         return (hB * 60 + mB) - (hA * 60 + mA); // Most recent first
       });
       
-      setCheckinClients(todayCheckins);
+      setCheckinClients(dateCheckins);
     } catch (err) {
       console.error('Error loading check-ins:', err);
       toast.error('Erro ao carregar check-ins');
@@ -555,7 +569,7 @@ const Admin = () => {
 
   // Add stamp to single checkin client (supports multiple stamps)
   const handleAddStampToCheckin = async (client: CheckinClient, stampsToAdd: number = 1) => {
-    if (client.hasStampToday || client.completed) return;
+    if (client.hasStampOnDate || client.completed) return;
     
     setAddingStamp(client.cardId);
     
@@ -581,11 +595,11 @@ const Admin = () => {
     setAddingStamp(null);
   };
 
-  // Add stamp to all today's checkins
+  // Add stamp to all date's checkins
   const handleAddStampToAllCheckins = async () => {
-    const eligibleClients = checkinClients.filter(c => !c.hasStampToday && !c.completed);
+    const eligibleClients = checkinClients.filter(c => !c.hasStampOnDate && !c.completed);
     if (eligibleClients.length === 0) {
-      toast.info("Todos os clientes já receberam selo hoje");
+      toast.info(isToday(checkinDate) ? "Todos os clientes já receberam selo hoje" : "Todos os clientes já receberam selo nesta data");
       return;
     }
     
@@ -2082,15 +2096,79 @@ END:VCARD`;
         {/* CheckIn View */}
         {activeView === 'checkin' && (
           <div className="space-y-4">
+            {/* Date Navigation */}
+            <div className="flex items-center gap-2 mb-4">
+              {/* Previous Day Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  const prev = new Date(checkinDate);
+                  prev.setDate(prev.getDate() - 1);
+                  setCheckinDate(prev);
+                }}
+                className="h-10 w-10 rounded-xl bg-[#1a1a1a] text-gray-400 hover:bg-[#252525]"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+
+              {/* Current Date Display */}
+              <Button
+                onClick={() => setCheckinDate(new Date())}
+                className={`flex-1 h-10 rounded-xl font-medium ${
+                  isToday(checkinDate) 
+                    ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                    : 'bg-[#1a1a1a] text-gray-300 hover:bg-[#252525]'
+                }`}
+              >
+                {isToday(checkinDate) 
+                  ? 'Hoje' 
+                  : format(checkinDate, 'dd/MM/yyyy')
+                }
+              </Button>
+
+              {/* Calendar Picker */}
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-xl bg-[#1a1a1a] text-gray-400 hover:bg-[#252525]"
+                  >
+                    <CalendarDays className="w-5 h-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-[#1a1a1a] border-[#2a2a2a]" align="end">
+                  <CalendarPicker
+                    mode="single"
+                    selected={checkinDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setCheckinDate(date);
+                        setIsCalendarOpen(false);
+                      }
+                    }}
+                    disabled={(date) => date > new Date()}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-white">Check-ins de Hoje</h2>
+                <h2 className="text-lg font-semibold text-white">
+                  {isToday(checkinDate) 
+                    ? 'Check-ins de Hoje' 
+                    : `Check-ins de ${format(checkinDate, 'dd/MM/yyyy')}`
+                  }
+                </h2>
                 <Badge className="bg-green-500/20 text-green-500 border-0">
                   {checkinClients.length}
                 </Badge>
               </div>
-              {checkinClients.filter(c => !c.hasStampToday && !c.completed).length > 0 && (
+              {checkinClients.filter(c => !c.hasStampOnDate && !c.completed).length > 0 && (
                 <Button
                   onClick={handleAddStampToAllCheckins}
                   disabled={addingStampToAll}
@@ -2116,7 +2194,12 @@ END:VCARD`;
             ) : checkinClients.length === 0 ? (
               <div className="text-center py-12">
                 <CheckCircle2 className="w-12 h-12 mx-auto text-gray-600 mb-2" />
-                <p className="text-gray-400">Nenhum check-in hoje</p>
+                <p className="text-gray-400">
+                  {isToday(checkinDate) 
+                    ? 'Nenhum check-in hoje' 
+                    : `Nenhum check-in em ${format(checkinDate, 'dd/MM/yyyy')}`
+                  }
+                </p>
                 <p className="text-xs text-gray-500">Os clientes podem fazer check-in pelo cartão digital</p>
               </div>
             ) : (
@@ -2157,9 +2240,9 @@ END:VCARD`;
                         <span className="text-sm text-gray-400">
                           Selos: <span className="text-orange-500 font-bold">{client.custamp}/{client.reqstamp}</span>
                         </span>
-                        {client.hasStampToday ? (
+                        {client.hasStampOnDate ? (
                           <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">
-                            Selo Hoje ✓
+                            {isToday(checkinDate) ? 'Selo Hoje ✓' : 'Selo ✓'}
                           </Badge>
                         ) : client.completed ? (
                           <Badge className="bg-purple-500/20 text-purple-400 border-0 text-[10px]">
@@ -2168,7 +2251,7 @@ END:VCARD`;
                         ) : null}
                       </div>
                       
-                      {!client.hasStampToday && !client.completed && (
+                      {!client.hasStampOnDate && !client.completed && (
                         <div className="flex gap-2">
                           <Button
                             size="sm"
