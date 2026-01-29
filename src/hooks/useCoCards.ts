@@ -14,6 +14,7 @@ export interface CoCard {
   icon: string | null;
   active: boolean | null;
   renewable: boolean | null;
+  checkin_enable: boolean | null;
   created_at: string;
 }
 
@@ -98,6 +99,7 @@ export const createCoCard = async (
     icon?: string;
     active?: boolean;
     renewable?: boolean;
+    checkin_enable?: boolean;
   }
 ) => {
   const companyUuid = companyIdToUuid(companyId);
@@ -116,6 +118,7 @@ export const createCoCard = async (
       icon: data.icon || 'armchair',
       active: data.active ?? true,
       renewable: data.renewable ?? true,
+      checkin_enable: data.checkin_enable ?? true,
     })
     .select()
     .single();
@@ -141,6 +144,7 @@ export const updateCoCard = async (
     icon?: string;
     active?: boolean;
     renewable?: boolean;
+    checkin_enable?: boolean;
   }
 ) => {
   const { error } = await supabase

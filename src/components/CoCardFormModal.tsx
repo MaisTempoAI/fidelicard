@@ -25,6 +25,7 @@ interface CoCardForm {
   icon: string;
   active: boolean;
   renewable: boolean;
+  checkin_enable: boolean;
 }
 
 interface CoCardFormModalProps {
@@ -175,6 +176,20 @@ export const CoCardFormModal = ({
                 <Switch
                   checked={coCardForm.renewable}
                   onCheckedChange={(checked) => setCoCardForm({...coCardForm, renewable: checked})}
+                />
+              </div>
+
+              {/* Check-In Enable Switch */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#252525]">
+                <div className="space-y-0.5">
+                  <Label className="text-sm text-white">Habilitar Check-In</Label>
+                  <p className="text-[10px] text-gray-500">
+                    Se desativado, cliente não terá botão de check-in no cartão
+                  </p>
+                </div>
+                <Switch
+                  checked={coCardForm.checkin_enable}
+                  onCheckedChange={(checked) => setCoCardForm({...coCardForm, checkin_enable: checked})}
                 />
               </div>
             </div>

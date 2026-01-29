@@ -135,6 +135,7 @@ export type Database = {
         Row: {
           active: boolean | null
           card: string | null
+          checkin_enable: boolean | null
           company: string | null
           created_at: string
           days: number | null
@@ -151,6 +152,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           card?: string | null
+          checkin_enable?: boolean | null
           company?: string | null
           created_at?: string
           days?: number | null
@@ -167,6 +169,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           card?: string | null
+          checkin_enable?: boolean | null
           company?: string | null
           created_at?: string
           days?: number | null
@@ -384,13 +387,44 @@ export type Database = {
           newpassword: string | null
           nomeEmpresa: string | null
           notificanumero: boolean | null
+          plano: string | null
           q1: string | null
           q10: string | null
           q10response: string | null
           q10url: string | null
+          q11: string | null
+          q11response: string | null
+          q11url: string | null
+          q12: string | null
+          q12response: string | null
+          q12url: string | null
+          q13: string | null
+          q13response: string | null
+          q13url: string | null
+          q14: string | null
+          q14response: string | null
+          q14url: string | null
+          q15: string | null
+          q15response: string | null
+          q15url: string | null
+          q16: string | null
+          q16response: string | null
+          q16url: string | null
+          q17: string | null
+          q17response: string | null
+          q17url: string | null
+          q18: string | null
+          q18response: string | null
+          q18url: string | null
+          q19: string | null
+          q19response: string | null
+          q19url: string | null
           q1response: string | null
           q1url: string | null
           q2: string | null
+          q20: string | null
+          q20response: string | null
+          q20url: string | null
           q2response: string | null
           q2url: string | null
           q3: string | null
@@ -439,13 +473,44 @@ export type Database = {
           newpassword?: string | null
           nomeEmpresa?: string | null
           notificanumero?: boolean | null
+          plano?: string | null
           q1?: string | null
           q10?: string | null
           q10response?: string | null
           q10url?: string | null
+          q11?: string | null
+          q11response?: string | null
+          q11url?: string | null
+          q12?: string | null
+          q12response?: string | null
+          q12url?: string | null
+          q13?: string | null
+          q13response?: string | null
+          q13url?: string | null
+          q14?: string | null
+          q14response?: string | null
+          q14url?: string | null
+          q15?: string | null
+          q15response?: string | null
+          q15url?: string | null
+          q16?: string | null
+          q16response?: string | null
+          q16url?: string | null
+          q17?: string | null
+          q17response?: string | null
+          q17url?: string | null
+          q18?: string | null
+          q18response?: string | null
+          q18url?: string | null
+          q19?: string | null
+          q19response?: string | null
+          q19url?: string | null
           q1response?: string | null
           q1url?: string | null
           q2?: string | null
+          q20?: string | null
+          q20response?: string | null
+          q20url?: string | null
           q2response?: string | null
           q2url?: string | null
           q3?: string | null
@@ -494,13 +559,44 @@ export type Database = {
           newpassword?: string | null
           nomeEmpresa?: string | null
           notificanumero?: boolean | null
+          plano?: string | null
           q1?: string | null
           q10?: string | null
           q10response?: string | null
           q10url?: string | null
+          q11?: string | null
+          q11response?: string | null
+          q11url?: string | null
+          q12?: string | null
+          q12response?: string | null
+          q12url?: string | null
+          q13?: string | null
+          q13response?: string | null
+          q13url?: string | null
+          q14?: string | null
+          q14response?: string | null
+          q14url?: string | null
+          q15?: string | null
+          q15response?: string | null
+          q15url?: string | null
+          q16?: string | null
+          q16response?: string | null
+          q16url?: string | null
+          q17?: string | null
+          q17response?: string | null
+          q17url?: string | null
+          q18?: string | null
+          q18response?: string | null
+          q18url?: string | null
+          q19?: string | null
+          q19response?: string | null
+          q19url?: string | null
           q1response?: string | null
           q1url?: string | null
           q2?: string | null
+          q20?: string | null
+          q20response?: string | null
+          q20url?: string | null
           q2response?: string | null
           q2url?: string | null
           q3?: string | null
