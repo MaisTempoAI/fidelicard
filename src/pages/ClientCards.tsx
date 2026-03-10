@@ -126,24 +126,17 @@ const ClientCards = () => {
         return;
       }
 
-      // Se tem apenas 1 cartão, redireciona direto para ele
-      if (clientCards.length === 1) {
-        const singleCard = clientCards[0];
-        if (singleCard.cardcode) {
-          navigate(`/card/${singleCard.cardcode}`);
-          return;
-        }
+      // Se tem apenas 1 cartão ativo, redireciona direto (independente do histórico)
+      const activeCards = clientCards.filter(c => !c.completed && !c.rescued);
+      if (activeCards.length === 1 && activeCards[0].cardcode) {
+        navigate(`/card/${activeCards[0].cardcode}`);
+        return;
       }
 
-      // Se tem apenas 1 cartão ativo (e nenhum completo/resgatado no histórico), redireciona
-      const activeCards = clientCards.filter(c => !c.completed && !c.rescued);
-      const completedOrRescuedCards = clientCards.filter(c => c.completed || c.rescued);
-      if (activeCards.length === 1 && completedOrRescuedCards.length === 0) {
-        const activeCard = activeCards[0];
-        if (activeCard.cardcode) {
-          navigate(`/card/${activeCard.cardcode}`);
-          return;
-        }
+      // Se não tem cartão ativo mas tem 1 cartão total, abre ele
+      if (activeCards.length === 0 && clientCards.length === 1 && clientCards[0].cardcode) {
+        navigate(`/card/${clientCards[0].cardcode}`);
+        return;
       }
 
       setCards(clientCards.map(c => ({
